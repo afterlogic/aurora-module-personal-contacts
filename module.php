@@ -15,15 +15,17 @@ class PersonalContactsModule extends AApiModule
 	
 	public function onBeforeGetContacts(&$aArgs, &$mResult)
 	{
-		if (isset($aArgs['Storage']) && $aArgs['Storage'] === 'personal')
+		if (isset($aArgs['Storage']) && ($aArgs['Storage'] === 'personal' || $aArgs['Storage'] === 'all'))
 		{
 			$iUserId = \CApi::getAuthenticatedUserId();
 			if (!isset($aArgs['Filters']) || !is_array($aArgs['Filters']))
 			{
 				$aArgs['Filters'] = array();
 			}
-			$aArgs['Filters']['Storage'] = 'personal';
-			$aArgs['Filters']['IdUser'] = $iUserId;
+			$aArgs['Filters']['$AND'] = [
+				'IdUser' => [$iUserId, '='],
+				'Storage' => ['personal', '='],
+			];
 		}
 	}
 }
