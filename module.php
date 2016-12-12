@@ -6,7 +6,8 @@ class PersonalContactsModule extends AApiModule
 	{
 		$this->subscribeEvent('Contacts::GetStorage', array($this, 'onGetStorage'));
 		$this->subscribeEvent('AdminPanelWebclient::DeleteEntity::before', array($this, 'onBeforeDeleteEntity'));
-		$this->subscribeEvent('Contacts::GetContacts::before', array($this, 'onBeforeGetContacts'));
+		$this->subscribeEvent('Contacts::GetContacts::before', array($this, 'prepareFiltersFromStorage'));
+		$this->subscribeEvent('Contacts::Export::before', array($this, 'prepareFiltersFromStorage'));
 	}
 	
 	public function onGetStorage(&$aStorages)
@@ -42,7 +43,7 @@ class PersonalContactsModule extends AApiModule
 		}
 	}
 	
-	public function onBeforeGetContacts(&$aArgs, &$mResult)
+	public function prepareFiltersFromStorage(&$aArgs, &$mResult)
 	{
 		if (isset($aArgs['Storage']) && ($aArgs['Storage'] === 'personal' || $aArgs['Storage'] === 'all'))
 		{
