@@ -29,7 +29,7 @@ class PersonalContactsModule extends AApiModule
 					]
 				];
 				$oApiContactsManager = $oContactsDecorator->GetApiContactsManager();
-				$aUserContacts = $oApiContactsManager->getContactItems(EContactSortField::Name, ESortOrder::ASC, 0, 0, $aFilters, 0);
+				$aUserContacts = $oApiContactsManager->getContacts(EContactSortField::Name, ESortOrder::ASC, 0, 0, $aFilters, '');
 				if (count($aUserContacts) > 0)
 				{
 					$aContactIds = [];
