@@ -6,6 +6,7 @@ class PersonalContactsModule extends AApiModule
 	{
 		$this->subscribeEvent('Contacts::GetStorage', array($this, 'onGetStorage'));
 		$this->subscribeEvent('AdminPanelWebclient::DeleteEntity::before', array($this, 'onBeforeDeleteEntity'));
+		$this->subscribeEvent('Contacts::CreateContact::before', array($this, 'onBeforeCreateContact'));
 		$this->subscribeEvent('Contacts::GetContacts::before', array($this, 'prepareFiltersFromStorage'));
 		$this->subscribeEvent('Contacts::Export::before', array($this, 'prepareFiltersFromStorage'));
 	}
@@ -39,6 +40,17 @@ class PersonalContactsModule extends AApiModule
 					}
 					$oContactsDecorator->DeleteContacts($aContactIds);
 				}
+			}
+		}
+	}
+	
+	public function onBeforeCreateContact(&$aArgs, &$mResult)
+	{
+		if (isset($aArgs['Contact']))
+		{
+			if (!isset($aArgs['Contact']['Storage']) || $aArgs['Contact']['Storage'] === '')
+			{
+				$aArgs['Contact']['Storage'] = 'personal';
 			}
 		}
 	}
