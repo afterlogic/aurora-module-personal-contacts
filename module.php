@@ -36,7 +36,7 @@ class PersonalContactsModule extends AApiModule
 					$aContactIds = [];
 					foreach ($aUserContacts as $oContact)
 					{
-						$aContactIds[] = $oContact->iId;
+						$aContactIds[] = $oContact->EntityId;
 					}
 					$oContactsDecorator->DeleteContacts($aContactIds);
 				}
