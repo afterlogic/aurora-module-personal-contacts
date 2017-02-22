@@ -1,6 +1,8 @@
 <?php
 
-class PersonalContactsModule extends AApiModule
+namespace Aurora\Modules;
+
+class PersonalContactsModule extends \AApiModule
 {
 	public function init() 
 	{
@@ -30,7 +32,7 @@ class PersonalContactsModule extends AApiModule
 					]
 				];
 				$oApiContactsManager = $oContactsDecorator->GetApiContactsManager();
-				$aUserContacts = $oApiContactsManager->getContacts(EContactSortField::Name, ESortOrder::ASC, 0, 0, $aFilters, '');
+				$aUserContacts = $oApiContactsManager->getContacts(\EContactSortField::Name, \ESortOrder::ASC, 0, 0, $aFilters, '');
 				if (count($aUserContacts) > 0)
 				{
 					$aContactIds = [];
@@ -60,7 +62,7 @@ class PersonalContactsModule extends AApiModule
 		if (isset($aArgs['Storage']) && ($aArgs['Storage'] === 'personal' || $aArgs['Storage'] === 'all'))
 		{
 			$iUserId = \CApi::getAuthenticatedUserId();
-			if (!isset($aArgs['Filters']) || !is_array($aArgs['Filters']))
+			if (!isset($aArgs['Filters']) || !\is_array($aArgs['Filters']))
 			{
 				$aArgs['Filters'] = array();
 			}
