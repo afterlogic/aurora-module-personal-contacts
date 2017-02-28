@@ -2,7 +2,7 @@
 
 namespace Aurora\Modules;
 
-class PersonalContactsModule extends \AApiModule
+class PersonalContactsModule extends \Aurora\System\AbstractModule
 {
 	public function init() 
 	{
@@ -22,7 +22,7 @@ class PersonalContactsModule extends \AApiModule
 	{
 		if ($aArgs['Type'] === 'User')
 		{
-			$oContactsDecorator = \CApi::GetModuleDecorator('Contacts');
+			$oContactsDecorator = \Aurora\System\Api::GetModuleDecorator('Contacts');
 			if ($oContactsDecorator)
 			{
 				$aFilters = [
@@ -61,7 +61,7 @@ class PersonalContactsModule extends \AApiModule
 	{
 		if (isset($aArgs['Storage']) && ($aArgs['Storage'] === 'personal' || $aArgs['Storage'] === 'all'))
 		{
-			$iUserId = \CApi::getAuthenticatedUserId();
+			$iUserId = \Aurora\System\Api::getAuthenticatedUserId();
 			if (!isset($aArgs['Filters']) || !\is_array($aArgs['Filters']))
 			{
 				$aArgs['Filters'] = array();
