@@ -2,7 +2,7 @@
 
 namespace Aurora\Modules;
 
-class PersonalContactsModule extends \Aurora\System\AbstractModule
+class PersonalContactsModule extends \Aurora\System\Module\AbstractModule
 {
 	public function init() 
 	{
