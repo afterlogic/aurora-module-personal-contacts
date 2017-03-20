@@ -66,10 +66,23 @@ class Module extends \Aurora\System\Module\AbstractModule
 			{
 				$aArgs['Filters'] = array();
 			}
-			$aArgs['Filters'][]['$AND'] = [
-				'IdUser' => [$iUserId, '='],
-				'Storage' => ['personal', '='],
-			];
+			
+			if (isset($aArgs['SortField']) && $aArgs['SortField'] !== \EContactSortField::Frequency)
+			{
+				$aArgs['Filters'][]['$AND'] = [
+					'IdUser' => [$iUserId, '='],
+					'Storage' => ['personal', '='],
+					'Auto' => [false, '='],
+				];
+			}
+			else
+			{
+				$aArgs['Filters'][]['$AND'] = [
+					'IdUser' => [$iUserId, '='],
+					'Storage' => ['personal', '='],
+					'Frequency' => [-1, '!='],
+				];
+			}
 		}
 	}
 }
