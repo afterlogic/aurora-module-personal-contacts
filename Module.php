@@ -54,12 +54,12 @@ class Module extends \Aurora\System\Module\AbstractModule
 				$aUserContacts = $oApiContactsManager->getContacts(\EContactSortField::Name, \ESortOrder::ASC, 0, 0, $aFilters, '');
 				if (count($aUserContacts) > 0)
 				{
-					$aContactIds = [];
+					$aContactUUIDs = [];
 					foreach ($aUserContacts as $oContact)
 					{
-						$aContactIds[] = $oContact->EntityId;
+						$aContactUUIDs[] = $oContact->UUID;
 					}
-					$oContactsDecorator->DeleteContacts($aContactIds);
+					$oContactsDecorator->DeleteContacts($aContactUUIDs);
 				}
 			}
 		}
