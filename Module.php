@@ -86,12 +86,12 @@ class Module extends \Aurora\System\Module\AbstractModule
 				$aArgs['Filters'] = array();
 			}
 			
-			if (isset($aArgs['SortField']) && $aArgs['SortField'] !== \EContactSortField::Frequency)
+			if (isset($aArgs['SortField']) && $aArgs['SortField'] === \EContactSortField::Frequency)
 			{
 				$aArgs['Filters'][]['$AND'] = [
 					'IdUser' => [$iUserId, '='],
 					'Storage' => ['personal', '='],
-					'Auto' => [false, '='],
+					'Frequency' => [-1, '!='],
 				];
 			}
 			else
@@ -99,7 +99,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 				$aArgs['Filters'][]['$AND'] = [
 					'IdUser' => [$iUserId, '='],
 					'Storage' => ['personal', '='],
-					'Frequency' => [-1, '!='],
+					'Auto' => [false, '='],
 				];
 			}
 		}
