@@ -43,7 +43,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 					]
 				];
 				$oApiContactsManager = $oContactsDecorator->GetApiContactsManager();
-				$aUserContacts = $oApiContactsManager->getContacts(\EContactSortField::Name, \ESortOrder::ASC, 0, 0, $aFilters, '');
+				$aUserContacts = $oApiContactsManager->getContacts(\EContactSortField::Name, \Aurora\System\Enums\SortOrder::ASC, 0, 0, $aFilters, '');
 				if (count($aUserContacts) > 0)
 				{
 					$aContactUUIDs = [];
