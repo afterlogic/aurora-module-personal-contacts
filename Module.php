@@ -33,7 +33,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 	{
 		if ($aArgs['Type'] === 'User')
 		{
-			$oContactsDecorator = \Aurora\System\Api::GetModuleDecorator('Contacts');
+			$oContactsDecorator = \Aurora\Modules\Contacts\Module::Decorator();
 			if ($oContactsDecorator)
 			{
 				$aFilters = [
