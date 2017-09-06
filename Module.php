@@ -43,7 +43,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 					]
 				];
 				$oApiContactsManager = $oContactsDecorator->GetApiContactsManager();
-				$aUserContacts = $oApiContactsManager->getContacts(\EContactSortField::Name, \Aurora\System\Enums\SortOrder::ASC, 0, 0, $aFilters, '');
+				$aUserContacts = $oApiContactsManager->getContacts(\Aurora\Modules\Contacts\Enums\SortField::Name, \Aurora\System\Enums\SortOrder::ASC, 0, 0, $aFilters, '');
 				if (count($aUserContacts) > 0)
 				{
 					$aContactUUIDs = [];
@@ -78,7 +78,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 				$aArgs['Filters'] = array();
 			}
 			
-			if (isset($aArgs['SortField']) && $aArgs['SortField'] === \EContactSortField::Frequency)
+			if (isset($aArgs['SortField']) && $aArgs['SortField'] === \Aurora\Modules\Contacts\Enums\SortField::Frequency)
 			{
 				$aArgs['Filters'][]['$AND'] = [
 					'IdUser' => [$iUserId, '='],
