@@ -18,7 +18,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 	public function init() 
 	{
 		$this->subscribeEvent('Contacts::GetStorage', array($this, 'onGetStorage'));
-		$this->subscribeEvent('AdminPanelWebclient::DeleteEntity::before', array($this, 'onBeforeDeleteEntity'));
+		$this->subscribeEvent('Core::DeleteUser::before', array($this, 'onBeforeDeleteUser'));
 		$this->subscribeEvent('Contacts::CreateContact::before', array($this, 'onBeforeCreateContact'));
 		$this->subscribeEvent('Contacts::GetContacts::before', array($this, 'prepareFiltersFromStorage'));
 		$this->subscribeEvent('Contacts::Export::before', array($this, 'prepareFiltersFromStorage'));
@@ -29,30 +29,27 @@ class Module extends \Aurora\System\Module\AbstractModule
 		$aStorages[] = 'personal';
 	}
 	
-	public function onBeforeDeleteEntity(&$aArgs, &$mResult)
+	public function onBeforeDeleteUser(&$aArgs, &$mResult)
 	{
-		if ($aArgs['Type'] === 'User')
+		$oContactsDecorator = \Aurora\Modules\Contacts\Module::Decorator();
+		if ($oContactsDecorator)
 		{
-			$oContactsDecorator = \Aurora\Modules\Contacts\Module::Decorator();
-			if ($oContactsDecorator)
+			$aFilters = [
+				'$AND' => [
+					'IdUser' => [$aArgs['UserId'], '='],
+					'Storage' => ['personal', '=']
+				]
+			];
+			$oApiContactsManager = $oContactsDecorator->GetApiContactsManager();
+			$aUserContacts = $oApiContactsManager->getContacts(\Aurora\Modules\Contacts\Enums\SortField::Name, \Aurora\System\Enums\SortOrder::ASC, 0, 0, $aFilters, '');
+			if (count($aUserContacts) > 0)
 			{
-				$aFilters = [
-					'$AND' => [
-						'IdUser' => [$aArgs['Id'], '='],
-						'Storage' => ['personal', '=']
-					]
-				];
-				$oApiContactsManager = $oContactsDecorator->GetApiContactsManager();
-				$aUserContacts = $oApiContactsManager->getContacts(\Aurora\Modules\Contacts\Enums\SortField::Name, \Aurora\System\Enums\SortOrder::ASC, 0, 0, $aFilters, '');
-				if (count($aUserContacts) > 0)
+				$aContactUUIDs = [];
+				foreach ($aUserContacts as $oContact)
 				{
-					$aContactUUIDs = [];
-					foreach ($aUserContacts as $oContact)
-					{
-						$aContactUUIDs[] = $oContact->UUID;
-					}
-					$oContactsDecorator->DeleteContacts($aContactUUIDs);
+					$aContactUUIDs[] = $oContact->UUID;
 				}
+				$oContactsDecorator->DeleteContacts($aContactUUIDs);
 			}
 		}
 	}
