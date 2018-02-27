@@ -88,7 +88,10 @@ class Module extends \Aurora\System\Module\AbstractModule
 				$aArgs['Filters'][]['$AND'] = [
 					'IdUser' => [$iUserId, '='],
 					'Storage' => ['personal', '='],
-					'Auto' => [false, '='],
+					'$OR' => [
+						'1@Auto' => [false, '='],
+						'2@Auto' => ['NULL', 'IS']
+					]
 				];
 			}
 		}
