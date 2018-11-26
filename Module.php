@@ -115,7 +115,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 			if ($bVcard && !empty($sData))
 			{
 				$oContact = \Aurora\Modules\Contacts\Classes\Contact::createInstance(
-				\Aurora\Modules\Contacts\Module::getNamespace() . '\Classes\Contact',
+				\Aurora\Modules\Contacts\Classes\Contact::class,
 					'Contacts'
 				);
 				$oContact->InitFromVCardStr($oUser->EntityId, $sData);
@@ -138,7 +138,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 				if ($oApiFileCache && $oApiFileCache->put($oUser->UUID, $sTemptFile, $sData, '', self::GetName()))
 				{
 					$oVcard = \Aurora\Modules\Mail\Classes\Vcard::createInstance(
-						\Aurora\Modules\Mail\Module::getNamespace() . '\Classes\Vcard', 
+						\Aurora\Modules\Mail\Classes\Vcard::class, 
 						self::GetName()
 					);
 
