@@ -131,7 +131,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 				}
 
 				$sTemptFile = md5($sData).'.vcf';
-				if ($oApiFileCache && $oApiFileCache->put($oUser->UUID, $sTemptFile, $sData, '', self::GetName()))
+				if ($oApiFileCache && $oApiFileCache->put($oUser->UUID, $sTemptFile, $sData)) // Temp files with access from another module should be stored in System folder
 				{
 					$oVcard = \Aurora\Modules\Mail\Classes\Vcard::createInstance(
 						\Aurora\Modules\Mail\Classes\Vcard::class, 
