@@ -25,6 +25,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 		$this->subscribeEvent('Contacts::Export::before', array($this, 'prepareFiltersFromStorage'));
 		$this->subscribeEvent('Contacts::GetContactsByEmails::before', array($this, 'prepareFiltersFromStorage'));
 		$this->subscribeEvent('Mail::ExtendMessageData', array($this, 'onExtendMessageData'));
+		$this->subscribeEvent('Contacts::CheckAccess::after', array($this, 'onAfterCheckAccess'));
 	}
 	
 	public function onGetStorage(&$aStorages)
@@ -154,5 +155,22 @@ class Module extends \Aurora\System\Module\AbstractModule
 			}
 		}
 	}	
-	
+
+	public function onAfterCheckAccess(&$aArgs, &$mResult)
+	{
+		$oUser = $aArgs['User'];
+		$oContact = isset($aArgs['Contact']) ? $aArgs['Contact'] : null;
+
+		if ($oContact instanceof \Aurora\Modules\Contacts\Classes\Contact && $oContact->Storage === 'personal')
+		{
+			if ($oUser->Role !== \Aurora\System\Enums\UserRole::SuperAdmin && $oUser->EntityId !== $oContact->IdUser)
+			{
+				$mResult = false;
+			}
+			else
+			{
+				$mResult = true;
+			}
+		}
+	}
 }
