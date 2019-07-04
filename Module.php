@@ -116,42 +116,49 @@ class Module extends \Aurora\System\Module\AbstractModule
 				\Aurora\Modules\Contacts\Classes\Contact::class,
 					'Contacts'
 				);
-				$oContact->InitFromVCardStr($oUser->EntityId, $sData);
-				
-				$oContact->UUID = '';
-
-				$bContactExists = false;
-				if (0 < strlen($oContact->ViewEmail))
+				try
 				{
-					$aLocalContacts = \Aurora\System\Api::GetModuleDecorator('Contacts')->GetContactsByEmails('personal', [$oContact->ViewEmail]);
-					$oLocalContact = count($aLocalContacts) > 0 ? $aLocalContacts[0] : null;
-					if ($oLocalContact)
+					$oContact->InitFromVCardStr($oUser->EntityId, $sData);
+					
+					$oContact->UUID = '';
+
+					$bContactExists = false;
+					if (0 < strlen($oContact->ViewEmail))
 					{
-						$oContact->UUID = $oLocalContact->UUID;
-						$bContactExists = true;
+						$aLocalContacts = \Aurora\System\Api::GetModuleDecorator('Contacts')->GetContactsByEmails('personal', [$oContact->ViewEmail]);
+						$oLocalContact = count($aLocalContacts) > 0 ? $aLocalContacts[0] : null;
+						if ($oLocalContact)
+						{
+							$oContact->UUID = $oLocalContact->UUID;
+							$bContactExists = true;
+						}
 					}
+
+					$sTemptFile = md5($sData).'.vcf';
+					if ($oApiFileCache && $oApiFileCache->put($oUser->UUID, $sTemptFile, $sData)) // Temp files with access from another module should be stored in System folder
+					{
+						$oVcard = \Aurora\Modules\Mail\Classes\Vcard::createInstance(
+							\Aurora\Modules\Mail\Classes\Vcard::class, 
+							self::GetName()
+						);
+
+						$oVcard->Uid = $oContact->UUID;
+						$oVcard->File = $sTemptFile;
+						$oVcard->Exists = !!$bContactExists;
+						$oVcard->Name = $oContact->FullName;
+						$oVcard->Email = $oContact->ViewEmail;
+
+						$oMessage->addExtend('VCARD', $oVcard);
+					}
+					else
+					{
+						\Aurora\System\Api::Log('Can\'t save temp file "'.$sTemptFile.'"', \Aurora\System\Enums\LogLevel::Error);
+					}					
 				}
-
-				$sTemptFile = md5($sData).'.vcf';
-				if ($oApiFileCache && $oApiFileCache->put($oUser->UUID, $sTemptFile, $sData)) // Temp files with access from another module should be stored in System folder
+				catch(\Exception $oEx)
 				{
-					$oVcard = \Aurora\Modules\Mail\Classes\Vcard::createInstance(
-						\Aurora\Modules\Mail\Classes\Vcard::class, 
-						self::GetName()
-					);
-
-					$oVcard->Uid = $oContact->UUID;
-					$oVcard->File = $sTemptFile;
-					$oVcard->Exists = !!$bContactExists;
-					$oVcard->Name = $oContact->FullName;
-					$oVcard->Email = $oContact->ViewEmail;
-
-					$oMessage->addExtend('VCARD', $oVcard);
+					\Aurora\System\Api::LogException($oEx);
 				}
-				else
-				{
-					\Aurora\System\Api::Log('Can\'t save temp file "'.$sTemptFile.'"', \Aurora\System\Enums\LogLevel::Error);
-				}					
 			}
 		}
 	}	
