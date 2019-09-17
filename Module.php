@@ -16,26 +16,27 @@ namespace Aurora\Modules\PersonalContacts;
  */
 class Module extends \Aurora\System\Module\AbstractModule
 {
+	public static $sStorage = 'personal';
+
 	public function init() 
 	{
-		$this->subscribeEvent('Contacts::GetStorage', array($this, 'onGetStorage'));
+		$this->subscribeEvent('Contacts::GetStorages', array($this, 'onGetStorages'));
 		$this->subscribeEvent('Core::DeleteUser::before', array($this, 'onBeforeDeleteUser'));
 		$this->subscribeEvent('Contacts::CreateContact::before', array($this, 'onBeforeCreateContact'));
 		$this->subscribeEvent('Contacts::GetContacts::before', array($this, 'prepareFiltersFromStorage'));
 		$this->subscribeEvent('Contacts::Export::before', array($this, 'prepareFiltersFromStorage'));
 		$this->subscribeEvent('Contacts::GetContactsByEmails::before', array($this, 'prepareFiltersFromStorage'));
 		$this->subscribeEvent('Mail::ExtendMessageData', array($this, 'onExtendMessageData'));
-		$this->subscribeEvent('Contacts::CheckAccess::after', array($this, 'onAfterCheckAccess'));
+		$this->subscribeEvent('Contacts::CheckAccessToObject::after', array($this, 'onAfterCheckAccessToObject'));
 	}
 	
-	public function onGetStorage(&$aStorages)
+	public function onGetStorages(&$aStorages)
 	{
-		$aStorages[] = 'personal';
+		$aStorages[] = self::$sStorage;
 	}
 	
 	public function onBeforeDeleteUser(&$aArgs, &$mResult)
 	{
-		$sStorage = 'personal';
 		$oContactsDecorator = \Aurora\Modules\Contacts\Module::Decorator();
 		if ($oContactsDecorator)
 		{
@@ -44,13 +45,13 @@ class Module extends \Aurora\System\Module\AbstractModule
 				[
 					'$AND' => [
 						'IdUser' => [$aArgs['UserId'], '='],
-						'Storage' => [$sStorage, '=']
+						'Storage' => [self::$sStorage, '=']
 					]
 				]
 			);
 			if (count($aContactUUIDs) > 0)
 			{
-				$oContactsDecorator->DeleteContacts($sStorage, $aContactUUIDs);
+				$oContactsDecorator->DeleteContacts(self::$sStorage, $aContactUUIDs);
 			}
 		}
 	}
@@ -61,16 +62,17 @@ class Module extends \Aurora\System\Module\AbstractModule
 		{
 			if (!isset($aArgs['Contact']['Storage']) || $aArgs['Contact']['Storage'] === '')
 			{
-				$aArgs['Contact']['Storage'] = 'personal';
+				$aArgs['Contact']['Storage'] = self::$sStorage;
 			}
 		}
 	}
 	
 	public function prepareFiltersFromStorage(&$aArgs, &$mResult)
 	{
-		if (isset($aArgs['Storage']) && ($aArgs['Storage'] === 'personal' || $aArgs['Storage'] === 'all'))
+		if (isset($aArgs['Storage']) && ($aArgs['Storage'] === self::$sStorage || $aArgs['Storage'] === 'all'))
 		{
-			$iUserId = \Aurora\System\Api::getAuthenticatedUserId();
+			$iUserId = isset($aArgs['UserId']) ? $aArgs['UserId'] : \Aurora\System\Api::getAuthenticatedUserId();
+
 			if (!isset($aArgs['Filters']) || !\is_array($aArgs['Filters']))
 			{
 				$aArgs['Filters'] = array();
@@ -80,7 +82,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 			{
 				$aArgs['Filters'][]['$AND'] = [
 					'IdUser' => [$iUserId, '='],
-					'Storage' => ['personal', '='],
+					'Storage' => [self::$sStorage, '='],
 					'Frequency' => [-1, '!='],
 				];
 			}
@@ -88,7 +90,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 			{
 				$aArgs['Filters'][]['$AND'] = [
 					'IdUser' => [$iUserId, '='],
-					'Storage' => ['personal', '='],
+					'Storage' => [self::$sStorage, '='],
 					'$OR' => [
 						'1@Auto' => [false, '='],
 						'2@Auto' => ['NULL', 'IS']
@@ -125,7 +127,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 					$bContactExists = false;
 					if (0 < strlen($oContact->ViewEmail))
 					{
-						$aLocalContacts = \Aurora\System\Api::GetModuleDecorator('Contacts')->GetContactsByEmails('personal', [$oContact->ViewEmail]);
+						$aLocalContacts = \Aurora\System\Api::GetModuleDecorator('Contacts')->GetContactsByEmails(self::$sStorage, [$oContact->ViewEmail]);
 						$oLocalContact = count($aLocalContacts) > 0 ? $aLocalContacts[0] : null;
 						if ($oLocalContact)
 						{
@@ -163,12 +165,12 @@ class Module extends \Aurora\System\Module\AbstractModule
 		}
 	}	
 
-	public function onAfterCheckAccess(&$aArgs, &$mResult)
+	public function onAfterCheckAccessToObject(&$aArgs, &$mResult)
 	{
 		$oUser = $aArgs['User'];
 		$oContact = isset($aArgs['Contact']) ? $aArgs['Contact'] : null;
 
-		if ($oContact instanceof \Aurora\Modules\Contacts\Classes\Contact && $oContact->Storage === 'personal')
+		if ($oContact instanceof \Aurora\Modules\Contacts\Classes\Contact && $oContact->Storage === self::$sStorage)
 		{
 			if ($oUser->Role !== \Aurora\System\Enums\UserRole::SuperAdmin && $oUser->EntityId !== $oContact->IdUser)
 			{
