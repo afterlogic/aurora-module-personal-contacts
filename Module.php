@@ -21,6 +21,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 	public function init() 
 	{
 		$this->subscribeEvent('Contacts::GetStorages', array($this, 'onGetStorages'));
+		$this->subscribeEvent('Contacts::IsDisplayedStorage::after', array($this, 'onAfterIsDisplayedStorage'));
 		$this->subscribeEvent('Core::DeleteUser::before', array($this, 'onBeforeDeleteUser'));
 		$this->subscribeEvent('Contacts::CreateContact::before', array($this, 'onBeforeCreateContact'));
 		$this->subscribeEvent('Contacts::GetContacts::before', array($this, 'prepareFiltersFromStorage'));
@@ -34,8 +35,17 @@ class Module extends \Aurora\System\Module\AbstractModule
 	public function onGetStorages(&$aStorages)
 	{
 		$aStorages[] = self::$sStorage;
+		$aStorages[] = 'collected';
 	}
 	
+	public function onAfterIsDisplayedStorage($aArgs, &$mResult)
+	{
+		if ($aArgs['Storage'] === 'collected')
+		{
+			$mResult = false;
+		}
+	}
+
 	public function onBeforeDeleteUser(&$aArgs, &$mResult)
 	{
 		$oContactsDecorator = \Aurora\Modules\Contacts\Module::Decorator();
@@ -70,13 +80,21 @@ class Module extends \Aurora\System\Module\AbstractModule
 	
 	public function prepareFiltersFromStorage(&$aArgs, &$mResult)
 	{
-		if (isset($aArgs['Storage']) && ($aArgs['Storage'] === self::$sStorage || $aArgs['Storage'] === 'all'))
+		if (isset($aArgs['Storage']) && ($aArgs['Storage'] === self::$sStorage || $aArgs['Storage'] === 'all' || $aArgs['Storage'] === 'collected'))
 		{
 			$iUserId = isset($aArgs['UserId']) ? $aArgs['UserId'] : \Aurora\System\Api::getAuthenticatedUserId();
 
 			if (!isset($aArgs['Filters']) || !\is_array($aArgs['Filters']))
 			{
 				$aArgs['Filters'] = array();
+			}
+
+			$sStorage = self::$sStorage;
+			$bAuto = false;
+			if ($aArgs['Storage'] === 'collected')
+			{
+				$sStorage = 'personal';
+				$bAuto = true;
 			}
 			
 			if (isset($aArgs['SortField']) && $aArgs['SortField'] === \Aurora\Modules\Contacts\Enums\SortField::Frequency)
@@ -89,14 +107,25 @@ class Module extends \Aurora\System\Module\AbstractModule
 			}
 			else
 			{
-				$aArgs['Filters'][]['$AND'] = [
-					'IdUser' => [$iUserId, '='],
-					'Storage' => [self::$sStorage, '='],
-					'$OR' => [
-						'1@Auto' => [false, '='],
-						'2@Auto' => ['NULL', 'IS']
-					]
-				];
+				if (!$bAuto)
+				{
+					$aArgs['Filters'][]['$AND'] = [
+						'IdUser' => [$iUserId, '='],
+						'Storage' => [self::$sStorage, '='],
+						'$OR' => [
+							'1@Auto' => [false, '='],
+							'2@Auto' => ['NULL', 'IS']
+						]
+					];
+				}
+				else
+				{
+					$aArgs['Filters'][]['$AND'] = [
+						'IdUser' => [$iUserId, '='],
+						'Storage' => [self::$sStorage, '='],
+						'Auto' => [true, '=']
+					];
+				}
 			}
 		}
 	}
