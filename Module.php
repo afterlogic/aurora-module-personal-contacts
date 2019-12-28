@@ -7,6 +7,8 @@
 
 namespace Aurora\Modules\PersonalContacts;
 
+use \Aurora\Modules\Contacts\Enums\StorageType;
+
 /**
  * @license https://www.gnu.org/licenses/agpl-3.0.html AGPL-3.0
  * @license https://afterlogic.com/products/common-licensing Afterlogic Software License
@@ -16,7 +18,7 @@ namespace Aurora\Modules\PersonalContacts;
  */
 class Module extends \Aurora\System\Module\AbstractModule
 {
-	public static $sStorage = 'personal';
+	public static $sStorage = StorageType::Personal;
 
 	public function init() 
 	{
@@ -35,12 +37,12 @@ class Module extends \Aurora\System\Module\AbstractModule
 	public function onGetStorages(&$aStorages)
 	{
 		$aStorages[] = self::$sStorage;
-		$aStorages[] = 'collected';
+		$aStorages[] = StorageType::Collected;
 	}
 	
 	public function onAfterIsDisplayedStorage($aArgs, &$mResult)
 	{
-		if ($aArgs['Storage'] === 'collected')
+		if ($aArgs['Storage'] === StorageType::Collected)
 		{
 			$mResult = false;
 		}
@@ -80,7 +82,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 	
 	public function prepareFiltersFromStorage(&$aArgs, &$mResult)
 	{
-		if (isset($aArgs['Storage']) && ($aArgs['Storage'] === self::$sStorage || $aArgs['Storage'] === 'all' || $aArgs['Storage'] === 'collected'))
+		if (isset($aArgs['Storage']) && ($aArgs['Storage'] === self::$sStorage || $aArgs['Storage'] === StorageType::All || $aArgs['Storage'] === StorageType::Collected))
 		{
 			$iUserId = isset($aArgs['UserId']) ? $aArgs['UserId'] : \Aurora\System\Api::getAuthenticatedUserId();
 
@@ -91,9 +93,9 @@ class Module extends \Aurora\System\Module\AbstractModule
 
 			$sStorage = self::$sStorage;
 			$bAuto = false;
-			if ($aArgs['Storage'] === 'collected')
+			if ($aArgs['Storage'] === StorageType::Collected)
 			{
-				$sStorage = 'personal';
+				$sStorage = StorageType::Personal;
 				$bAuto = true;
 			}
 			
@@ -103,6 +105,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 					'IdUser' => [$iUserId, '='],
 					'Storage' => [self::$sStorage, '='],
 					'Frequency' => [-1, '!='],
+					'DateModified' => ['NULL', 'IS NOT']
 				];
 			}
 			else
@@ -144,10 +147,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 			$sData = $aDataItem['Data'];
 			if ($bVcard && !empty($sData))
 			{
-				$oContact = \Aurora\Modules\Contacts\Classes\Contact::createInstance(
-				\Aurora\Modules\Contacts\Classes\Contact::class,
-					'Contacts'
-				);
+				$oContact = new \Aurora\Modules\Contacts\Classes\Contact('Contacts');
 				try
 				{
 					$oContact->InitFromVCardStr($oUser->EntityId, $sData);
@@ -157,7 +157,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 					$bContactExists = false;
 					if (0 < strlen($oContact->ViewEmail))
 					{
-						$aLocalContacts = \Aurora\System\Api::GetModuleDecorator('Contacts')->GetContactsByEmails(self::$sStorage, [$oContact->ViewEmail]);
+						$aLocalContacts = \Aurora\Modules\Contacts\Module::Decorator()->GetContactsByEmails(self::$sStorage, [$oContact->ViewEmail]);
 						$oLocalContact = count($aLocalContacts) > 0 ? $aLocalContacts[0] : null;
 						if ($oLocalContact)
 						{
@@ -169,10 +169,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 					$sTemptFile = md5($sData).'.vcf';
 					if ($oApiFileCache && $oApiFileCache->put($oUser->UUID, $sTemptFile, $sData)) // Temp files with access from another module should be stored in System folder
 					{
-						$oVcard = \Aurora\Modules\Mail\Classes\Vcard::createInstance(
-							\Aurora\Modules\Mail\Classes\Vcard::class, 
-							self::GetName()
-						);
+						$oVcard = new \Aurora\Modules\Mail\Classes\Vcard(self::GetName());
 
 						$oVcard->Uid = $oContact->UUID;
 						$oVcard->File = $sTemptFile;
