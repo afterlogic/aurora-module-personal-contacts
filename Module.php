@@ -19,6 +19,7 @@ use \Aurora\Modules\Contacts\Enums\StorageType;
 class Module extends \Aurora\System\Module\AbstractModule
 {
 	public static $sStorage = StorageType::Personal;
+	protected static $iStorageOrder = 0;	
 
 	public function init() 
 	{
@@ -36,8 +37,8 @@ class Module extends \Aurora\System\Module\AbstractModule
 	
 	public function onGetStorages(&$aStorages)
 	{
-		$aStorages[] = self::$sStorage;
-		$aStorages[] = StorageType::Collected;
+		$aStorages[self::$iStorageOrder] = self::$sStorage;
+		$aStorages[self::$iStorageOrder + 1] = StorageType::Collected;
 	}
 	
 	public function onAfterIsDisplayedStorage($aArgs, &$mResult)
