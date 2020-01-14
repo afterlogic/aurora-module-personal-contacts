@@ -158,7 +158,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 					$bContactExists = false;
 					if (0 < strlen($oContact->ViewEmail))
 					{
-						$aLocalContacts = \Aurora\Modules\Contacts\Module::Decorator()->GetContactsByEmails(self::$sStorage, [$oContact->ViewEmail]);
+						$aLocalContacts = \Aurora\Modules\Contacts\Module::Decorator()->GetContactsByEmails($oUser->EntityId, self::$sStorage, [$oContact->ViewEmail]);
 						$oLocalContact = count($aLocalContacts) > 0 ? $aLocalContacts[0] : null;
 						if ($oLocalContact)
 						{
@@ -170,7 +170,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 					$sTemptFile = md5($sData).'.vcf';
 					if ($oApiFileCache && $oApiFileCache->put($oUser->UUID, $sTemptFile, $sData)) // Temp files with access from another module should be stored in System folder
 					{
-						$oVcard = new \Aurora\Modules\Mail\Classes\Vcard(self::GetName());
+						$oVcard = \Aurora\Modules\Mail\Classes\Vcard::createInstance();
 
 						$oVcard->Uid = $oContact->UUID;
 						$oVcard->File = $sTemptFile;
