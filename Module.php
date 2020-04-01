@@ -102,24 +102,20 @@ class Module extends \Aurora\System\Module\AbstractModule
 			
 			if (isset($aArgs['SortField']) && $aArgs['SortField'] === \Aurora\Modules\Contacts\Enums\SortField::Frequency)
 			{
-				$aArgs['Filters'][]['$AND'] = [
-					'IdUser' => [$iUserId, '='],
-					'Storage' => [self::$sStorage, '='],
-					'Frequency' => [-1, '!='],
-					'DateModified' => ['NULL', 'IS NOT']
-				];
+				$aArgs['Filters']['$AND']['IdUser'] = [$iUserId, '='];
+				$aArgs['Filters']['$AND']['Storage'] =  [self::$sStorage, '='];
+				$aArgs['Filters']['$AND']['Frequency'] = [-1, '!='];
+				$aArgs['Filters']['$AND']['DateModified'] = ['NULL', 'IS NOT'];
 			}
 			else
 			{
 				if (!$bAuto)
 				{
-					$aArgs['Filters'][]['$AND'] = [
-						'IdUser' => [$iUserId, '='],
-						'Storage' => [self::$sStorage, '='],
-						'$OR' => [
-							'1@Auto' => [false, '='],
-							'2@Auto' => ['NULL', 'IS']
-						]
+					$aArgs['Filters']['$AND']['IdUser'] = [$iUserId, '='];
+					$aArgs['Filters']['$AND']['Storage'] =  [self::$sStorage, '='];
+					$aArgs['Filters']['$AND']['$OR'] = [
+						'1@Auto' => [false, '='],
+						'2@Auto' => ['NULL', 'IS']
 					];
 				}
 				else
