@@ -8,6 +8,7 @@
 namespace Aurora\Modules\PersonalContacts;
 
 use \Aurora\Modules\Contacts\Enums\StorageType;
+use Aurora\Modules\Contacts\Models\Contact;
 
 /**
  * @license https://www.gnu.org/licenses/agpl-3.0.html AGPL-3.0
@@ -19,9 +20,9 @@ use \Aurora\Modules\Contacts\Enums\StorageType;
 class Module extends \Aurora\System\Module\AbstractModule
 {
 	public static $sStorage = StorageType::Personal;
-	protected static $iStorageOrder = 0;	
+	protected static $iStorageOrder = 0;
 
-	public function init() 
+	public function init()
 	{
 		$this->subscribeEvent('Contacts::GetStorages', array($this, 'onGetStorages'));
 		$this->subscribeEvent('Contacts::IsDisplayedStorage::after', array($this, 'onAfterIsDisplayedStorage'));
@@ -32,13 +33,13 @@ class Module extends \Aurora\System\Module\AbstractModule
 		$this->subscribeEvent('Contacts::CheckAccessToObject::after', array($this, 'onAfterCheckAccessToObject'));
 		$this->subscribeEvent('Contacts::GetContactSuggestions', array($this, 'onGetContactSuggestions'));
 	}
-	
+
 	public function onGetStorages(&$aStorages)
 	{
 		$aStorages[self::$iStorageOrder] = self::$sStorage;
 		$aStorages[self::$iStorageOrder + 1] = StorageType::Collected;
 	}
-	
+
 	public function onAfterIsDisplayedStorage($aArgs, &$mResult)
 	{
 		if ($aArgs['Storage'] === StorageType::Collected)
@@ -54,12 +55,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 		{
 			$oApiContactsManager = $oContactsDecorator->GetApiContactsManager();
 			$aContactUUIDs = $oApiContactsManager->getContactUids(
-				[
-					'$AND' => [
-						'IdUser' => [$aArgs['UserId'], '='],
-						'Storage' => [self::$sStorage, '=']
-					]
-				]
+				Contact::where([['IdUser', '=', $aArgs['UserId']], ['Storage', '=', self::$sStorage]])
 			);
 			if (count($aContactUUIDs) > 0)
 			{
@@ -67,7 +63,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 			}
 		}
 	}
-	
+
 	public function onBeforeCreateContact(&$aArgs, &$mResult)
 	{
 		if (isset($aArgs['Contact']))
@@ -85,9 +81,9 @@ class Module extends \Aurora\System\Module\AbstractModule
 		{
 			$iUserId = isset($aArgs['UserId']) ? $aArgs['UserId'] : \Aurora\System\Api::getAuthenticatedUserId();
 
-			if (!isset($mResult) || !\is_array($mResult))
+			if (!isset($mResult))
 			{
-				$mResult = array();
+				$mResult = Contact::query();
 			}
 
 			$sStorage = self::$sStorage;
@@ -97,66 +93,57 @@ class Module extends \Aurora\System\Module\AbstractModule
 				$sStorage = StorageType::Personal;
 				$bAuto = true;
 			}
-			
-			if (isset($aArgs['SortField']) && $aArgs['SortField'] === \Aurora\Modules\Contacts\Enums\SortField::Frequency)
-			{
-				$mResult[]['$AND'] = [
-					'IdUser' => [$iUserId, '='],
-					'Storage' => [self::$sStorage, '='],
-					'Frequency' => [-1, '!='],
-					'DateModified' => ['NULL', 'IS NOT']
-				];
-			}
-			else
-			{
-				if (!$bAuto)
+
+			$mResult = $mResult->where(function($query) use ($iUserId, $sStorage, $bAuto) {
+				$query = $query->where('IdUser', $iUserId)
+					->where('Storage', $sStorage);
+				if (isset($aArgs['SortField']) && $aArgs['SortField'] === \Aurora\Modules\Contacts\Enums\SortField::Frequency)
 				{
-					$mResult[]['$AND'] = [
-						'IdUser' => [$iUserId, '='],
-						'Storage' => [self::$sStorage, '='],
-						'$OR' => [
-							'1@Auto' => [false, '='],
-							'2@Auto' => ['NULL', 'IS']
-						]
-					];
+					$query->where('Frequency', '!=', -1)
+						->whereNotNull('DateModified');
 				}
 				else
 				{
-					$mResult[]['$AND'] = [
-						'IdUser' => [$iUserId, '='],
-						'Storage' => [self::$sStorage, '='],
-						'Auto' => [true, '=']
-					];
+					if (!$bAuto)
+					{
+						$query->where('Auto', false)
+							->orWhereNull('Auto');
+					}
+					else
+					{
+						$query->where('Auto', true)
+							->orWhereNull('Auto');
+					}
 				}
-			}
+		    });
 		}
-	}	
-	
+	}
+
 	public function onExtendMessageData($aData, &$oMessage)
 	{
 		$oApiFileCache = new \Aurora\System\Managers\Filecache();
-		
+
 		$oUser = \Aurora\System\Api::getAuthenticatedUser();
-		
+
 		foreach ($aData as $aDataItem)
 		{
 			$oPart = $aDataItem['Part'];
-			$bVcard = $oPart instanceof \MailSo\Imap\BodyStructure && 
+			$bVcard = $oPart instanceof \MailSo\Imap\BodyStructure &&
 					($oPart->ContentType() === 'text/vcard' || $oPart->ContentType() === 'text/x-vcard');
 			$sData = $aDataItem['Data'];
 			if ($bVcard && !empty($sData))
 			{
-				$oContact = new \Aurora\Modules\Contacts\Classes\Contact('Contacts');
+				$oContact = new Contact();
 				try
 				{
-					$oContact->InitFromVCardStr($oUser->EntityId, $sData);
-					
+					$oContact->InitFromVCardStr($oUser->Id, $sData);
+
 					$oContact->UUID = '';
 
 					$bContactExists = false;
 					if (0 < strlen($oContact->ViewEmail))
 					{
-						$aLocalContacts = \Aurora\Modules\Contacts\Module::Decorator()->GetContactsByEmails($oUser->EntityId, self::$sStorage, [$oContact->ViewEmail]);
+						$aLocalContacts = \Aurora\Modules\Contacts\Module::Decorator()->GetContactsByEmails($oUser->Id, self::$sStorage, [$oContact->ViewEmail]);
 						$oLocalContact = count($aLocalContacts) > 0 ? $aLocalContacts[0] : null;
 						if ($oLocalContact)
 						{
@@ -181,7 +168,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 					else
 					{
 						\Aurora\System\Api::Log('Can\'t save temp file "'.$sTemptFile.'"', \Aurora\System\Enums\LogLevel::Error);
-					}					
+					}
 				}
 				catch(\Exception $oEx)
 				{
@@ -189,16 +176,16 @@ class Module extends \Aurora\System\Module\AbstractModule
 				}
 			}
 		}
-	}	
+	}
 
 	public function onAfterCheckAccessToObject(&$aArgs, &$mResult)
 	{
 		$oUser = $aArgs['User'];
 		$oContact = isset($aArgs['Contact']) ? $aArgs['Contact'] : null;
 
-		if ($oContact instanceof \Aurora\Modules\Contacts\Classes\Contact && $oContact->Storage === self::$sStorage)
+		if ($oContact instanceof Contact && $oContact->Storage === self::$sStorage)
 		{
-			if ($oUser->Role !== \Aurora\System\Enums\UserRole::SuperAdmin && $oUser->EntityId !== $oContact->IdUser)
+			if ($oUser->Role !== \Aurora\System\Enums\UserRole::SuperAdmin && $oUser->Id !== $oContact->IdUser)
 			{
 				$mResult = false;
 			}
@@ -214,12 +201,12 @@ class Module extends \Aurora\System\Module\AbstractModule
 		if ($aArgs['Storage'] === 'all' || $aArgs['Storage'] === self::$sStorage)
 		{
 			$mResult['personal'] = \Aurora\Modules\Contacts\Module::Decorator()->GetContacts(
-				$aArgs['UserId'], 
-				self::$sStorage, 
-				0, 
-				$aArgs['Limit'], 
-				$aArgs['SortField'], 
-				$aArgs['SortOrder'], 
+				$aArgs['UserId'],
+				self::$sStorage,
+				0,
+				$aArgs['Limit'],
+				$aArgs['SortField'],
+				$aArgs['SortOrder'],
 				$aArgs['Search']
 			);
 		}
