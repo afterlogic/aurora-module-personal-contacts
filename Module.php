@@ -94,7 +94,9 @@ class Module extends \Aurora\System\Module\AbstractModule
 				$bAuto = true;
 			}
 
-			$mResult = $mResult->where(function($query) use ($iUserId, $sStorage, $bAuto) {
+			$bSuggestions = (isset($aArgs['Suggestions']) && !!$aArgs['Suggestions']);
+
+			$mResult = $mResult->orWhere(function($query) use ($iUserId, $sStorage, $bAuto, $bSuggestions) {
 				$query = $query->where('IdUser', $iUserId)
 					->where('Storage', $sStorage);
 				if (isset($aArgs['SortField']) && $aArgs['SortField'] === \Aurora\Modules\Contacts\Enums\SortField::Frequency)
@@ -102,7 +104,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 					$query->where('Frequency', '!=', -1)
 						->whereNotNull('DateModified');
 				}
-				else
+				else if (!$bSuggestions)
 				{
 					if (!$bAuto)
 					{
