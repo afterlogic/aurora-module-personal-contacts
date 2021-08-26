@@ -107,19 +107,23 @@ class Module extends \Aurora\System\Module\AbstractModule
 					$bAuto = true;
 				}
 
+				$aFilter = [
+					'IdUser' => [$iUserId, '=']					
+				];
 				if ($sStorage === StorageType::All)
 				{
-					$sStorage = StorageType::Personal;
+					$aFilter['$OR'] = [
+						'1@Storage' => [StorageType::Personal, '='],
+						'2@Storage' => ['addressbook%', 'LIKE']
+					];
 				}
-				
-				$aFilter = [
-					'IdUser' => [$iUserId, '='],
-					'Storage' => [$sStorage, '=']
-				];
-
-				if ($sStorage === 'addressbook')
+				else
 				{
-					$aFilter['AddressBookId'] = [$iAddressBookId, '='];
+					if ($sStorage === 'addressbook')
+					{
+						$aFilter['Storage'] = [$sStorage, '='];
+						$aFilter['AddressBookId'] = [$iAddressBookId, '='];
+					}
 				}
 
 				if (isset($aArgs['SortField']) && $aArgs['SortField'] === \Aurora\Modules\Contacts\Enums\SortField::Frequency)
