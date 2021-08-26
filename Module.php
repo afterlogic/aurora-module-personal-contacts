@@ -65,6 +65,21 @@ class Module extends \Aurora\System\Module\AbstractModule
 			{
 				$oContactsDecorator->DeleteContacts($aArgs['UserId'], self::$sStorage, $aContactUUIDs);
 			}
+
+			$aContactUUIDs = $oApiContactsManager->getContactUids(
+				[
+					'$AND' => [
+						'IdUser' => [$aArgs['UserId'], '='],
+						'Storage' => ['addressbook', '=']
+					]
+				]
+			);
+			if (count($aContactUUIDs) > 0)
+			{
+				$oContactsDecorator->DeleteContacts($aArgs['UserId'], 'addressbook', $aContactUUIDs);
+			}
+
+			$oContactsDecorator->DeleteUsersAddressBooks($aArgs['UserId']);
 		}
 	}
 	
