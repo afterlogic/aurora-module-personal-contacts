@@ -81,60 +81,69 @@ class Module extends \Aurora\System\Module\AbstractModule
 
 	 public function prepareFiltersFromStorage(&$aArgs, &$mResult)
 	{
-		$iAddressBookId = 0;
-		if (substr($aArgs['Storage'], 0, 11) === 'addressbook') {
-			$iAddressBookId = (int) substr($aArgs['Storage'], 11);
-			$sStorage = 'addressbook';
-		}
-
-		if (isset($aArgs['Storage']) && ($aArgs['Storage'] === self::$sStorage || $aArgs['Storage'] === StorageType::All || $aArgs['Storage'] === StorageType::Collected))
+		if (isset($aArgs['Storage']))
 		{
-			$iUserId = isset($aArgs['UserId']) ? $aArgs['UserId'] : \Aurora\System\Api::getAuthenticatedUserId();
-
-			if (!isset($mResult) || !\is_array($mResult))
+			$iAddressBookId = 0;
+			if (substr($aArgs['Storage'], 0, 11) === 'addressbook') 
 			{
-				$mResult = array();
+				$iAddressBookId = (int) substr($aArgs['Storage'], 11);
+				$aArgs['Storage'] = 'addressbook';
 			}
+			$sStorage = $aArgs['Storage'];
 
-			$sStorage = self::$sStorage;
-			$bAuto = false;
-			if ($aArgs['Storage'] === StorageType::Collected)
+			if ($sStorage === self::$sStorage || $sStorage === StorageType::All || $sStorage === StorageType::Collected || $sStorage === 'addressbook')
 			{
-				$sStorage = StorageType::Personal;
-				$bAuto = true;
-			}
-			
-			$aFilter = [
-				'IdUser' => [$iUserId, '='],
-				'Storage' => [$sStorage, '=']
-			];
+				$iUserId = isset($aArgs['UserId']) ? $aArgs['UserId'] : \Aurora\System\Api::getAuthenticatedUserId();
 
-			if ($sStorage === 'addressbook')
-			{
-				$aFilter['AddressBookId'] = [$iAddressBookId, '='];
-			}
-
-			if (isset($aArgs['SortField']) && $aArgs['SortField'] === \Aurora\Modules\Contacts\Enums\SortField::Frequency)
-			{
-				$aFilter['Frequency'] = [-1, '!='];
-				$aFilter['DateModified'] = ['NULL', 'IS NOT'];
-			}
-			else
-			{
-				if (!$bAuto)
+				if (!isset($mResult) || !\is_array($mResult))
 				{
-					$aFilter['$OR'] = [
-						'1@Auto' => [false, '='],
-						'2@Auto' => ['NULL', 'IS']
-					];
+					$mResult = array();
+				}
+
+				$bAuto = false;
+				if ($sStorage === StorageType::Collected)
+				{
+					$sStorage = StorageType::Personal;
+					$bAuto = true;
+				}
+
+				if ($sStorage === StorageType::All)
+				{
+					$sStorage = StorageType::Personal;
+				}
+				
+				$aFilter = [
+					'IdUser' => [$iUserId, '='],
+					'Storage' => [$sStorage, '=']
+				];
+
+				if ($sStorage === 'addressbook')
+				{
+					$aFilter['AddressBookId'] = [$iAddressBookId, '='];
+				}
+
+				if (isset($aArgs['SortField']) && $aArgs['SortField'] === \Aurora\Modules\Contacts\Enums\SortField::Frequency)
+				{
+					$aFilter['Frequency'] = [-1, '!='];
+					$aFilter['DateModified'] = ['NULL', 'IS NOT'];
 				}
 				else
 				{
-					$aFilter['Auto'] = [true, '='];
+					if (!$bAuto)
+					{
+						$aFilter['$OR'] = [
+							'1@Auto' => [false, '='],
+							'2@Auto' => ['NULL', 'IS']
+						];
+					}
+					else
+					{
+						$aFilter['Auto'] = [true, '='];
 
+					}
 				}
+				$mResult[]['$AND'] = $aFilter;
 			}
-			$mResult[]['$AND'] = $aFilter;
 		}
 	}	
 	
