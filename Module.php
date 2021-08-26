@@ -134,9 +134,9 @@ class Module extends \Aurora\System\Module\AbstractModule
 				}
 				else
 				{
+					$aFilter['Storage'] = [$sStorage, '='];
 					if ($sStorage === 'addressbook')
 					{
-						$aFilter['Storage'] = [$sStorage, '='];
 						$aFilter['AddressBookId'] = [$iAddressBookId, '='];
 					}
 				}
