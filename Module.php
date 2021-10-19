@@ -27,6 +27,8 @@ class Module extends \Aurora\System\Module\AbstractModule
 		$this->subscribeEvent('Contacts::IsDisplayedStorage::after', array($this, 'onAfterIsDisplayedStorage'));
 		$this->subscribeEvent('Core::DeleteUser::before', array($this, 'onBeforeDeleteUser'));
 		$this->subscribeEvent('Contacts::CreateContact::before', array($this, 'onBeforeCreateContact'));
+		$this->subscribeEvent('Contacts::UpdateContact::before', array($this, 'onBeforeUpdateContact'));
+		$this->subscribeEvent('Contacts::DeleteContact::before', array($this, 'onBeforeDeleteContact'));
 		$this->subscribeEvent('Contacts::PrepareFiltersFromStorage', array($this, 'prepareFiltersFromStorage'));
 		$this->subscribeEvent('Mail::ExtendMessageData', array($this, 'onExtendMessageData'));
 		$this->subscribeEvent('Contacts::CheckAccessToObject::after', array($this, 'onAfterCheckAccessToObject'));
@@ -43,7 +45,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 	{
 		if ($aArgs['Storage'] === StorageType::Collected)
 		{
-			$mResult = false;
+			$mResult = true;
 		}
 	}
 
@@ -90,6 +92,35 @@ class Module extends \Aurora\System\Module\AbstractModule
 			if (!isset($aArgs['Contact']['Storage']) || $aArgs['Contact']['Storage'] === '')
 			{
 				$aArgs['Contact']['Storage'] = self::$sStorage;
+			}
+
+			if ($aArgs['Contact']['Storage'] === StorageType::Collected)
+			{
+				$aArgs['Contact']['Storage'] = StorageType::Personal;
+				$aArgs['Contact']['Auto'] = true;
+			}
+		}
+	}
+
+	public function onBeforeUpdateContact(&$aArgs, &$mResult)
+	{
+		if (isset($aArgs['Contact']))
+		{
+			if ($aArgs['Contact']['Storage'] === StorageType::Collected)
+			{
+				$aArgs['Contact']['Storage'] = StorageType::Personal;
+				$aArgs['Contact']['Auto'] = true;
+			}
+		}
+	}
+
+	public function onBeforeDeleteContact(&$aArgs, &$mResult)
+	{
+		if (isset($aArgs['Storage']))
+		{
+			if ($aArgs['Storage'] === StorageType::Collected)
+			{
+				$aArgs['Storage'] = StorageType::Personal;
 			}
 		}
 	}
