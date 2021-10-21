@@ -160,7 +160,8 @@ class Module extends \Aurora\System\Module\AbstractModule
 				{
 					$aFilter['$OR'] = [
 						'1@Storage' => [StorageType::Personal, '='],
-						'2@Storage' => ['addressbook%', 'LIKE']
+						'2@Storage' => ['addressbook%', 'LIKE'],
+						'Auto' => true
 					];
 				}
 				else
@@ -181,10 +182,10 @@ class Module extends \Aurora\System\Module\AbstractModule
 				{
 					if (!$bAuto)
 					{
-						$aFilter['$OR'] = [
-							'1@Auto' => [false, '='],
-							'2@Auto' => ['NULL', 'IS']
-						];
+						// $aFilter['$OR'] = [
+						// 	'1@Auto' => [false, '='],
+						// 	'2@Auto' => ['NULL', 'IS']
+						// ];
 					}
 					else
 					{
