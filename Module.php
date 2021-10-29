@@ -145,7 +145,13 @@ class Module extends \Aurora\System\Module\AbstractModule
 					$bContactExists = false;
 					if (0 < strlen($oContact->ViewEmail))
 					{
-						$aLocalContacts = \Aurora\Modules\Contacts\Module::Decorator()->GetContactsByEmails($oUser->Id, self::$sStorage, [$oContact->ViewEmail]);
+						$aLocalContacts = \Aurora\Modules\Contacts\Module::Decorator()->GetContactsByEmails(
+							$oUser->Id, 
+							self::$sStorage, 
+							[$oContact->ViewEmail],
+							null,
+							false
+						);
 						$oLocalContact = count($aLocalContacts) > 0 ? $aLocalContacts[0] : null;
 						if ($oLocalContact)
 						{
