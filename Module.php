@@ -132,10 +132,19 @@ class Module extends \Aurora\System\Module\AbstractModule
 				}
 				
 				$aContacts = \Aurora\Modules\Contacts\Module::Decorator()->GetContactsByEmails($aArgs['UserId'], 'personal', $aEmails);
-				$aContacts = array_merge(
-					$aContacts,
-					\Aurora\Modules\Contacts\Module::Decorator()->GetContactsByEmails($aArgs['UserId'], 'addressbook', $aEmails)
-				);
+				if (count($aContacts) > 0) {
+					$aUuids = array_map(function ($oContact) {
+						return $oContact->UUID;
+					}, $aContacts);
+					\Aurora\Modules\Contacts\Module::Decorator()->DeleteContacts($aArgs['UserId'], 'personal', $aUuids);
+				}
+				$aContacts = \Aurora\Modules\Contacts\Module::Decorator()->GetContactsByEmails($aArgs['UserId'], 'addressbooks', $aEmails);
+				if (count($aContacts) > 0) {
+					$aUuids = array_map(function ($oContact) {
+						return $oContact->UUID;
+					}, $aContacts);
+					\Aurora\Modules\Contacts\Module::Decorator()->DeleteContacts($aArgs['UserId'], 'addressbooks', $aUuids);
+				}
 
 			}
 		}
