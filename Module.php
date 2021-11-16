@@ -95,26 +95,48 @@ class Module extends \Aurora\System\Module\AbstractModule
 				$aArgs['Contact']['Storage'] = self::$sStorage;
 			}
 
+			if ($aArgs['Contact']['Auto'] === true && empty(\trim($aArgs['Contact']['FullName']))) {
+				$sEmail = $aArgs['Contact']['PersonalEmail'];
+				if (!empty($sEmail)) {
+					$sName = \MailSo\Base\Utils::GetAccountNameFromEmail($sEmail);
+					$sName = str_replace(['-', '.'], ' ', $sName);
+					$aNames = explode(' ', $sName);
+					foreach ($aNames as $iKey => $sNamePart) {
+						if (strlen($sNamePart) >= 4) {
+							$aNames[$iKey] = ucfirst($sNamePart);
+						}
+					}
+
+					$aArgs['Contact']['FullName'] = implode(' ', $aNames);
+				}
+			}
+
 			if ($aArgs['Contact']['Storage'] === StorageType::Collected)
 			{
 				$aArgs['Contact']['Storage'] = StorageType::Personal;
 				$aArgs['Contact']['Auto'] = true;
-
-				if (\trim(empty($aArgs['Contact']['FullName']))) {
-					$sEmail = $aArgs['Contact']['PersonalEmail'];
-					if (!empty($sEmail)) {
-						$sName = \MailSo\Base\Utils::GetAccountNameFromEmail($sEmail);
-						$sName = str_replace(['-', '.'], ' ', $sName);
-						$aNames = explode(' ', $sName);
-						foreach ($aNames as $iKey => $sNamePart) {
-							if (strlen($sNamePart) >= 4) {
-								$aNames[$iKey] = ucfirst($sNamePart);
-							}
-						}
-
-						$aArgs['Contact']['FullName'] = implode(' ', $aNames);
-					}
+			}
+			else {
+				$aEmails = [];
+				if (isset($aArgs['Contact']['PersonalEmail'])) {
+					$aEmails[] = $aArgs['Contact']['PersonalEmail'];
 				}
+				if (isset($aArgs['Contact']['BusinessEmail'])) {
+					$aEmails[] = $aArgs['Contact']['BusinessEmail'];
+				}
+				if (isset($aArgs['Contact']['OtherEmail'])) {
+					$aEmails[] = $aArgs['Contact']['OtherEmail'];
+				}
+				if (isset($aArgs['Contact']['OtherEmail'])) {
+					$aEmails[] = $aArgs['Contact']['OtherEmail'];
+				}
+				
+				$aContacts = \Aurora\Modules\Contacts\Module::Decorator()->GetContactsByEmails($aArgs['UserId'], 'personal', $aEmails);
+				$aContacts = array_merge(
+					$aContacts,
+					\Aurora\Modules\Contacts\Module::Decorator()->GetContactsByEmails($aArgs['UserId'], 'addressbook', $aEmails)
+				);
+
 			}
 		}
 	}
