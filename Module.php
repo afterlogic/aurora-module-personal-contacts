@@ -99,6 +99,22 @@ class Module extends \Aurora\System\Module\AbstractModule
 			{
 				$aArgs['Contact']['Storage'] = StorageType::Personal;
 				$aArgs['Contact']['Auto'] = true;
+
+				if (\trim(empty($aArgs['Contact']['FullName']))) {
+					$sEmail = $aArgs['Contact']['PersonalEmail'];
+					if (!empty($sEmail)) {
+						$sName = \MailSo\Base\Utils::GetAccountNameFromEmail($sEmail);
+						$sName = str_replace(['-', '.'], ' ', $sName);
+						$aNames = explode(' ', $sName);
+						foreach ($aNames as $iKey => $sNamePart) {
+							if (strlen($sNamePart) >= 4) {
+								$aNames[$iKey] = ucfirst($sNamePart);
+							}
+						}
+
+						$aArgs['Contact']['FullName'] = implode(' ', $aNames);
+					}
+				}
 			}
 		}
 	}
