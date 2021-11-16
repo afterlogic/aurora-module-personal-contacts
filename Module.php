@@ -230,10 +230,10 @@ class Module extends \Aurora\System\Module\AbstractModule
 				{
 					if (!$bAuto)
 					{
-						// $aFilter['$OR'] = [
-						// 	'1@Auto' => [false, '='],
-						// 	'2@Auto' => ['NULL', 'IS']
-						// ];
+						$aFilter['$OR'] = [
+							'1@Auto' => [false, '='],
+							'2@Auto' => ['NULL', 'IS']
+						];
 					}
 					else
 					{
@@ -347,10 +347,13 @@ class Module extends \Aurora\System\Module\AbstractModule
 				$aArgs['Search']
 			);
 
-			$mResult['personal'] = array_merge(
-				$aContacts,
-				$aAbContacts
+			$aContacts['ContactCount'] = $aContacts['ContactCount'] + $aAbContacts['ContactCount']; 
+			$aContacts['List'] = array_merge(
+				$aContacts['List'],
+				$aAbContacts['List']
 			);
+
+			$mResult['personal'] = $aContacts;
 		}
 	}
 }
