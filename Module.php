@@ -7,6 +7,7 @@
 
 namespace Aurora\Modules\PersonalContacts;
 
+use Aurora\Modules\ActivityHistory\Storages\Db\Storage;
 use \Aurora\Modules\Contacts\Enums\StorageType;
 
 /**
@@ -167,7 +168,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 				else
 				{
 					$aFilter['Storage'] = [$sStorage, '='];
-					if ($sStorage === 'addressbook')
+					if ($sStorage === 'addressbook' && $iAddressBookId > 0)
 					{
 						$aFilter['AddressBookId'] = [$iAddressBookId, '='];
 					}
@@ -279,7 +280,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 	{
 		if ($aArgs['Storage'] === 'all' || $aArgs['Storage'] === self::$sStorage)
 		{
-			$mResult['personal'] = \Aurora\Modules\Contacts\Module::Decorator()->GetContacts(
+			$aContacts  = \Aurora\Modules\Contacts\Module::Decorator()->GetContacts(
 				$aArgs['UserId'], 
 				self::$sStorage, 
 				0, 
@@ -287,6 +288,21 @@ class Module extends \Aurora\System\Module\AbstractModule
 				$aArgs['SortField'], 
 				$aArgs['SortOrder'], 
 				$aArgs['Search']
+			);
+
+			$aAbContacts  = \Aurora\Modules\Contacts\Module::Decorator()->GetContacts(
+				$aArgs['UserId'], 
+				'addressbook', 
+				0, 
+				$aArgs['Limit'], 
+				$aArgs['SortField'], 
+				$aArgs['SortOrder'], 
+				$aArgs['Search']
+			);
+
+			$mResult['personal'] = array_merge(
+				$aContacts,
+				$aAbContacts
 			);
 		}
 	}
