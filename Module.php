@@ -95,7 +95,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 				$aArgs['Contact']['Storage'] = self::$sStorage;
 			}
 
-			if ($aArgs['Contact']['Auto'] === true && empty(\trim($aArgs['Contact']['FullName']))) {
+			if (isset($aArgs['Contact']['Auto']) && $aArgs['Contact']['Auto'] === true && empty(\trim($aArgs['Contact']['FullName']))) {
 				$sEmail = $aArgs['Contact']['PersonalEmail'];
 				if (!empty($sEmail)) {
 					$sName = \MailSo\Base\Utils::GetAccountNameFromEmail($sEmail);
