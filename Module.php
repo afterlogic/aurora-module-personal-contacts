@@ -7,8 +7,12 @@
 
 namespace Aurora\Modules\PersonalContacts;
 
-use \Aurora\Modules\Contacts\Enums\StorageType;
+use Aurora\Api;
+use Aurora\Modules\Contacts\Enums\SortField;
+use Aurora\Modules\Contacts\Enums\StorageType;
 use Aurora\Modules\Contacts\Models\Contact;
+use Aurora\Modules\Mail\Classes\Vcard;
+use Aurora\Modules\Contacts\Module as ContactsModule;
 
 /**
  * @license https://www.gnu.org/licenses/agpl-3.0.html AGPL-3.0
@@ -50,12 +54,16 @@ class Module extends \Aurora\System\Module\AbstractModule
 
 	public function onBeforeDeleteUser(&$aArgs, &$mResult)
 	{
-		$oContactsDecorator = \Aurora\Modules\Contacts\Module::Decorator();
+		$oContactsDecorator = ContactsModule::Decorator();
 		if ($oContactsDecorator)
 		{
 			$oApiContactsManager = $oContactsDecorator->GetApiContactsManager();
 			$aContactUUIDs = $oApiContactsManager->getContactUids(
-				Contact::where([['IdUser', '=', $aArgs['UserId']], ['Storage', '=', self::$sStorage]])
+				Contact::where('IdUser', '=', $aArgs['UserId'])
+					->where(function ($query) {
+						$query->where('Storage', '=', self::$sStorage)
+							->orWhere('Storage', '=', StorageType::AddressBook);
+					})
 			);
 			if (count($aContactUUIDs) > 0)
 			{
@@ -75,49 +83,63 @@ class Module extends \Aurora\System\Module\AbstractModule
 		}
 	}
 
-	 public function prepareFiltersFromStorage(&$aArgs, &$mResult)
+	public function prepareFiltersFromStorage(&$aArgs, &$mResult)
 	{
-		if (isset($aArgs['Storage']) && ($aArgs['Storage'] === self::$sStorage || $aArgs['Storage'] === StorageType::All || $aArgs['Storage'] === StorageType::Collected))
-		{
-			$iUserId = isset($aArgs['UserId']) ? $aArgs['UserId'] : \Aurora\System\Api::getAuthenticatedUserId();
-
-			if (!isset($mResult))
+		$iAddressBookId = 0;
+		if (isset($aArgs['Storage'])) {
+			if (substr($aArgs['Storage'], 0, strlen(StorageType::AddressBook)) === StorageType::AddressBook) 
 			{
-				$mResult = Contact::query();
+				$iAddressBookId = (int) substr($aArgs['Storage'], strlen(StorageType::AddressBook));
+				$aArgs['Storage'] = StorageType::AddressBook;
 			}
+			$sStorage = $aArgs['Storage'];
 
-			$sStorage = self::$sStorage;
-			$bAuto = false;
-			if ($aArgs['Storage'] === StorageType::Collected)
+			if ($sStorage === self::$sStorage || $sStorage === StorageType::All || 
+				$sStorage === StorageType::Collected || $sStorage === StorageType::AddressBook)
 			{
-				$sStorage = StorageType::Personal;
-				$bAuto = true;
+				$iUserId = isset($aArgs['UserId']) ? $aArgs['UserId'] : Api::getAuthenticatedUserId();
+
+				if (!isset($mResult))
+				{
+					$mResult = Contact::query();
+				}
+
+				$bAuto = ($sStorage === StorageType::Collected);
+				if ($bAuto)
+				{
+					$sStorage = StorageType::Personal;
+				}
+
+				$bSuggestions = (isset($aArgs['Suggestions']) && !!$aArgs['Suggestions']);
+
+				$mResult = $mResult->orWhere(function($query) use ($iUserId, $sStorage, $bAuto, $bSuggestions, $iAddressBookId) {
+					
+					$query = $query->where('IdUser', $iUserId);
+
+					if ($sStorage === StorageType::All)
+					{
+						$query = $query->where('Storage', StorageType::Personal)
+							->orWhere('Storage', StorageType::AddressBook);
+					}
+					else 
+					{
+						$query = $query->where('Storage', $sStorage);
+						if ($sStorage === StorageType::AddressBook && $iAddressBookId > 0)
+						{
+							$query = $query->where('AddressBookId', $iAddressBookId);
+						}
+					}
+					if (isset($aArgs['SortField']) && $aArgs['SortField'] === SortField::Frequency)
+					{
+						$query->where('Frequency', '!=', -1)
+							->whereNotNull('DateModified');
+					}
+					else if (!$bSuggestions)
+					{
+						$query->where('Auto', $bAuto)->orWhereNull('Auto');
+					}
+				});
 			}
-
-			$bSuggestions = (isset($aArgs['Suggestions']) && !!$aArgs['Suggestions']);
-
-			$mResult = $mResult->orWhere(function($query) use ($iUserId, $sStorage, $bAuto, $bSuggestions) {
-				$query = $query->where('IdUser', $iUserId)
-					->where('Storage', $sStorage);
-				if (isset($aArgs['SortField']) && $aArgs['SortField'] === \Aurora\Modules\Contacts\Enums\SortField::Frequency)
-				{
-					$query->where('Frequency', '!=', -1)
-						->whereNotNull('DateModified');
-				}
-				else if (!$bSuggestions)
-				{
-					if (!$bAuto)
-					{
-						$query->where('Auto', false)
-							->orWhereNull('Auto');
-					}
-					else
-					{
-						$query->where('Auto', true)
-							->orWhereNull('Auto');
-					}
-				}
-		    });
 		}
 	}
 
@@ -125,7 +147,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 	{
 		$oApiFileCache = new \Aurora\System\Managers\Filecache();
 
-		$oUser = \Aurora\System\Api::getAuthenticatedUser();
+		$oUser = Api::getAuthenticatedUser();
 
 		foreach ($aData as $aDataItem)
 		{
@@ -145,7 +167,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 					$bContactExists = false;
 					if (0 < strlen($oContact->ViewEmail))
 					{
-						$aLocalContacts = \Aurora\Modules\Contacts\Module::Decorator()->GetContactsByEmails(
+						$aLocalContacts = ContactsModule::Decorator()->GetContactsByEmails(
 							$oUser->Id, 
 							self::$sStorage, 
 							[$oContact->ViewEmail],
@@ -163,7 +185,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 					$sTemptFile = md5($sData).'.vcf';
 					if ($oApiFileCache && $oApiFileCache->put($oUser->UUID, $sTemptFile, $sData)) // Temp files with access from another module should be stored in System folder
 					{
-						$oVcard = \Aurora\Modules\Mail\Classes\Vcard::createInstance();
+						$oVcard = Vcard::createInstance();
 
 						$oVcard->Uid = $oContact->UUID;
 						$oVcard->File = $sTemptFile;
@@ -175,12 +197,12 @@ class Module extends \Aurora\System\Module\AbstractModule
 					}
 					else
 					{
-						\Aurora\System\Api::Log('Can\'t save temp file "'.$sTemptFile.'"', \Aurora\System\Enums\LogLevel::Error);
+						Api::Log('Can\'t save temp file "'.$sTemptFile.'"', \Aurora\System\Enums\LogLevel::Error);
 					}
 				}
 				catch(\Exception $oEx)
 				{
-					\Aurora\System\Api::LogException($oEx);
+					Api::LogException($oEx);
 				}
 			}
 		}
@@ -208,7 +230,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 	{
 		if ($aArgs['Storage'] === 'all' || $aArgs['Storage'] === self::$sStorage)
 		{
-			$mResult['personal'] = \Aurora\Modules\Contacts\Module::Decorator()->GetContacts(
+			$mResult['personal'] = ContactsModule::Decorator()->GetContacts(
 				$aArgs['UserId'],
 				self::$sStorage,
 				0,
