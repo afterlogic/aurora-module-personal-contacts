@@ -54,22 +54,11 @@ class Module extends \Aurora\System\Module\AbstractModule
 
 	public function onBeforeDeleteUser(&$aArgs, &$mResult)
 	{
-		$oContactsDecorator = ContactsModule::Decorator();
-		if ($oContactsDecorator)
-		{
-			$oApiContactsManager = $oContactsDecorator->GetApiContactsManager();
-			$aContactUUIDs = $oApiContactsManager->getContactUids(
-				Contact::where('IdUser', '=', $aArgs['UserId'])
-					->where(function ($query) {
-						$query->where('Storage', '=', self::$sStorage)
-							->orWhere('Storage', '=', StorageType::AddressBook);
-					})
-			);
-			if (count($aContactUUIDs) > 0)
-			{
-				$oContactsDecorator->DeleteContacts($aArgs['UserId'], self::$sStorage, $aContactUUIDs);
-			}
-		}
+		Contact::where('IdUser', '=', $aArgs['UserId'])
+			->where(function ($query) {
+				$query->where('Storage', '=', self::$sStorage)
+					->orWhere('Storage', '=', StorageType::AddressBook);
+			})->delete();
 	}
 
 	public function onBeforeCreateContact(&$aArgs, &$mResult)
