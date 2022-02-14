@@ -78,7 +78,13 @@ class Module extends \Aurora\System\Module\AbstractModule
 		if (isset($aArgs['Storage'])) {
 			if (substr($aArgs['Storage'], 0, strlen(StorageType::AddressBook)) === StorageType::AddressBook) 
 			{
-				$iAddressBookId = (int) substr($aArgs['Storage'], strlen(StorageType::AddressBook));
+				$iAddressBookId = substr($aArgs['Storage'], strlen(StorageType::AddressBook));
+				if (!is_numeric($iAddressBookId))
+				{
+					return;
+				}
+				
+				$iAddressBookId = (int) $iAddressBookId;
 				$aArgs['Storage'] = StorageType::AddressBook;
 			}
 			$sStorage = $aArgs['Storage'];
@@ -86,6 +92,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 			if ($sStorage === self::$sStorage || $sStorage === StorageType::All || 
 				$sStorage === StorageType::Collected || $sStorage === StorageType::AddressBook)
 			{
+				$aArgs['IsValid'] = true;
 				$iUserId = isset($aArgs['UserId']) ? $aArgs['UserId'] : Api::getAuthenticatedUserId();
 
 				if (!isset($mResult))
