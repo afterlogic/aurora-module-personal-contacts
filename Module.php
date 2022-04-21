@@ -76,9 +76,9 @@ class Module extends \Aurora\System\Module\AbstractModule
 	{
 		$iAddressBookId = 0;
 		if (isset($aArgs['Storage'])) {
-			if (substr($aArgs['Storage'], 0, strlen(StorageType::AddressBook)) === StorageType::AddressBook) 
-			{
-				$iAddressBookId = substr($aArgs['Storage'], strlen(StorageType::AddressBook));
+			$aStorageParts = \explode('-', $aArgs['Storage']);
+			if (isset($aStorageParts[0]) && $aStorageParts[0] === StorageType::AddressBook) {
+				$iAddressBookId = $aStorageParts[1];
 				if (!is_numeric($iAddressBookId))
 				{
 					return;
