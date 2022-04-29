@@ -114,8 +114,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 
 					if ($sStorage === StorageType::All)
 					{
-						$query = $query->where('Storage', StorageType::Personal)
-							->orWhere('Storage', StorageType::AddressBook);
+						$query = $query->whereIn('Storage', [StorageType::Personal, StorageType::AddressBook]);
 					}
 					else 
 					{
@@ -127,8 +126,8 @@ class Module extends \Aurora\System\Module\AbstractModule
 					}
 					if (isset($aArgs['SortField']) && $aArgs['SortField'] === SortField::Frequency)
 					{
-						$query->where('Frequency', '!=', -1)
-							->whereNotNull('DateModified');
+						// $query->where('Frequency', '!=', -1)
+						$query->whereNotNull('DateModified');
 					}
 					else if (!$bSuggestions)
 					{
