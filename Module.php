@@ -30,7 +30,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 	{
 		$this->subscribeEvent('Contacts::GetStorages', array($this, 'onGetStorages'));
 		$this->subscribeEvent('Contacts::IsDisplayedStorage::after', array($this, 'onAfterIsDisplayedStorage'));
-//		$this->subscribeEvent('Core::DeleteUser::before', array($this, 'onBeforeDeleteUser'));
+		$this->subscribeEvent('Core::DeleteUser::after', array($this, 'onAfterDeleteUser'));
 		$this->subscribeEvent('Contacts::CreateContact::before', array($this, 'onBeforeCreateContact'));
 		$this->subscribeEvent('Contacts::PrepareFiltersFromStorage', array($this, 'prepareFiltersFromStorage'));
 		$this->subscribeEvent('Mail::ExtendMessageData', array($this, 'onExtendMessageData'));
@@ -52,7 +52,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 		}
 	}
 
-	public function onBeforeDeleteUser(&$aArgs, &$mResult)
+	public function onAfterDeleteUser(&$aArgs, &$mResult)
 	{
 		Contact::where('IdUser', '=', $aArgs['UserId'])
 			->where(function ($query) {
