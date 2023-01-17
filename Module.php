@@ -11,7 +11,6 @@ use Aurora\Api;
 use Aurora\Modules\Contacts\Enums\SortField;
 use Aurora\Modules\Contacts\Enums\StorageType;
 use Aurora\Modules\Contacts\Models\Contact;
-use Aurora\Modules\Mail\Classes\Vcard;
 use Aurora\Modules\Contacts\Module as ContactsModule;
 
 /**
@@ -179,15 +178,17 @@ class Module extends \Aurora\System\Module\AbstractModule
 					$sTemptFile = md5($sData).'.vcf';
 					if ($oApiFileCache && $oApiFileCache->put($oUser->UUID, $sTemptFile, $sData)) // Temp files with access from another module should be stored in System folder
 					{
-						$oVcard = Vcard::createInstance();
+						if (class_exists('\Aurora\Modules\Mail\Classes\Vcard')) {
+							$oVcard = \Aurora\Modules\Mail\Classes\Vcard::createInstance();
 
-						$oVcard->Uid = $oContact->UUID;
-						$oVcard->File = $sTemptFile;
-						$oVcard->Exists = !!$bContactExists;
-						$oVcard->Name = $oContact->FullName;
-						$oVcard->Email = $oContact->ViewEmail;
+							$oVcard->Uid = $oContact->UUID;
+							$oVcard->File = $sTemptFile;
+							$oVcard->Exists = !!$bContactExists;
+							$oVcard->Name = $oContact->FullName;
+							$oVcard->Email = $oContact->ViewEmail;
 
-						$oMessage->addExtend('VCARD', $oVcard);
+							$oMessage->addExtend('VCARD', $oVcard);
+						}
 					}
 					else
 					{
