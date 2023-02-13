@@ -111,9 +111,10 @@ class Module extends \Aurora\System\Module\AbstractModule
                             $query = $query->where('AddressBookId', $iAddressBookId);
                         }
                     }
-                    if (isset($aArgs['SortField']) && $aArgs['SortField'] === SortField::Frequency) {
-                        $query->whereNotNull('DateModified');
-                    } elseif (!$bSuggestions) {
+                    // if (isset($aArgs['SortField']) && $aArgs['SortField'] === SortField::Frequency) {
+                    //     $query->whereNotNull('DateModified');
+                    // } else 
+                    if (!$bSuggestions) {
                         $query->where('Auto', $bAuto)->orWhereNull('Auto');
                     }
                 });
