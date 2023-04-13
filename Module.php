@@ -100,7 +100,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 
                 $bSuggestions = isset($aArgs['Suggestions']) ? !!$aArgs['Suggestions'] : false;
 
-                $mResult = $mResult->orWhere(function ($query) use ($iUserId, $sStorage, $bAuto, $bSuggestions, $iAddressBookId, $aArgs) {
+                $mResult = $mResult->orWhere(function ($query) use ($iUserId, $sStorage, $bAuto, $bSuggestions, $iAddressBookId) {
                     $query = $query->where('IdUser', $iUserId);
 
                     if ($sStorage === StorageType::All) {
@@ -113,7 +113,7 @@ class Module extends \Aurora\System\Module\AbstractModule
                     }
                     // if (isset($aArgs['SortField']) && $aArgs['SortField'] === SortField::Frequency) {
                     //     $query->whereNotNull('DateModified');
-                    // } else 
+                    // } else
                     if (!$bSuggestions) {
                         $query->where('Auto', $bAuto)->orWhereNull('Auto');
                     }
