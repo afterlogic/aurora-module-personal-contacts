@@ -31,7 +31,6 @@ class Module extends \Aurora\System\Module\AbstractModule
     {
         $this->subscribeEvent('Contacts::GetStorages', array($this, 'onGetStorages'));
         $this->subscribeEvent('Contacts::IsDisplayedStorage::after', array($this, 'onAfterIsDisplayedStorage'));
-//        $this->subscribeEvent('Core::DeleteUser::after', array($this, 'onAfterDeleteUser'));
         $this->subscribeEvent('Contacts::CreateContact::before', array($this, 'onBeforeCreateContact'));
         $this->subscribeEvent('Contacts::PrepareFiltersFromStorage', array($this, 'prepareFiltersFromStorage'));
         $this->subscribeEvent('Mail::ExtendMessageData', array($this, 'onExtendMessageData'));
@@ -74,15 +73,6 @@ class Module extends \Aurora\System\Module\AbstractModule
         if ($aArgs['Storage'] === StorageType::Collected) {
             $mResult = false;
         }
-    }
-
-    public function onAfterDeleteUser(&$aArgs, &$mResult)
-    {
-        Contact::where('IdUser', '=', $aArgs['UserId'])
-            ->where(function ($query) {
-                $query->where('Storage', '=', self::$sStorage)
-                    ->orWhere('Storage', '=', StorageType::AddressBook);
-            })->delete();
     }
 
     public function onBeforeCreateContact(&$aArgs, &$mResult)
