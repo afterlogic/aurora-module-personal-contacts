@@ -7,11 +7,14 @@
 
 namespace Aurora\Modules\PersonalContacts;
 
+use Afterlogic\DAV\Backend;
+use Afterlogic\DAV\Constants;
 use Aurora\Api;
 use Aurora\Modules\Contacts\Enums\SortField;
 use Aurora\Modules\Contacts\Enums\StorageType;
 use Aurora\Modules\Contacts\Models\Contact;
 use Aurora\Modules\Contacts\Module as ContactsModule;
+use Illuminate\Database\Capsule\Manager as Capsule;
 
 /**
  * @license https://www.gnu.org/licenses/agpl-3.0.html AGPL-3.0
@@ -27,6 +30,11 @@ class Module extends \Aurora\System\Module\AbstractModule
     public static $sStorage = StorageType::Personal;
     protected static $iStorageOrder = 0;
 
+    protected $storagesMapToAddressbooks = [
+        StorageType::Personal => Constants::ADDRESSBOOK_DEFAULT_NAME,
+        StorageType::Collected => Constants::ADDRESSBOOK_COLLECTED_NAME,
+    ];
+
     public function init()
     {
         $this->subscribeEvent('Contacts::GetStorages', array($this, 'onGetStorages'));
@@ -36,6 +44,12 @@ class Module extends \Aurora\System\Module\AbstractModule
         $this->subscribeEvent('Mail::ExtendMessageData', array($this, 'onExtendMessageData'));
         $this->subscribeEvent('Contacts::CheckAccessToObject::after', array($this, 'onAfterCheckAccessToObject'));
         $this->subscribeEvent('Contacts::GetContactSuggestions', array($this, 'onGetContactSuggestions'));
+
+        $this->subscribeEvent('Contacts::GetAddressBooks::after', array($this, 'onAfterGetAddressBooks'));
+        $this->subscribeEvent('Contacts::ContactQueryBuilder', array($this, 'onContactQueryBuilder'));
+        $this->subscribeEvent('Contacts::DeleteContacts::before', array($this, 'onBeforeDeleteContacts'));
+        $this->subscribeEvent('Contacts::CheckAccessToAddressBook::after', array($this, 'onAfterCheckAccessToAddressBook'));
+        $this->subscribeEvent('Contacts::GetStoragesMapToAddressbooks::after', array($this, 'onAfterGetStoragesMapToAddressbooks'));
     }
 
     /**
@@ -64,76 +78,53 @@ class Module extends \Aurora\System\Module\AbstractModule
 
     public function onGetStorages(&$aStorages)
     {
-        $aStorages[self::$iStorageOrder] = self::$sStorage;
-        $aStorages[self::$iStorageOrder + 1] = StorageType::Collected;
+        // $aStorages[self::$iStorageOrder] = self::$sStorage;
+        // $aStorages[self::$iStorageOrder + 1] = StorageType::Collected;
     }
 
     public function onAfterIsDisplayedStorage($aArgs, &$mResult)
     {
-        if ($aArgs['Storage'] === StorageType::Collected) {
-            $mResult = false;
-        }
+        // if ($aArgs['Storage'] === StorageType::Collected) {
+        //     $mResult = false;
+        // }
     }
 
     public function onBeforeCreateContact(&$aArgs, &$mResult)
     {
         if (isset($aArgs['Contact'])) {
-            if (!isset($aArgs['Contact']['Storage']) || $aArgs['Contact']['Storage'] === '') {
-                $aArgs['Contact']['Storage'] = self::$sStorage;
+            if (isset($aArgs['UserId'])) {
+                $aArgs['Contact']['UserId'] = $aArgs['UserId'];
             }
+            $this->populateStorage($aArgs['Contact'], $mResult);
+        }
+    }
+
+    public function onBeforeDeleteContacts(&$aArgs, &$mResult)
+    {
+        $this->populateStorage($aArgs);
+        if (isset($aArgs['AddressBookId'])) {
+            $aArgs['Storage'] = $aArgs['AddressBookId'];
         }
     }
 
     public function prepareFiltersFromStorage(&$aArgs, &$mResult)
     {
-        $iAddressBookId = 0;
+        $this->populateStorage($aArgs);
         if (isset($aArgs['Storage'])) {
-            $aStorageParts = \explode('-', $aArgs['Storage']);
-            if (isset($aStorageParts[0]) && $aStorageParts[0] === StorageType::AddressBook) {
-                $iAddressBookId = $aStorageParts[1];
-                if (!is_numeric($iAddressBookId)) {
-                    return;
+
+            if ($aArgs['Storage'] === StorageType::All) {
+                $oUser = Api::getUserById($aArgs['UserId']);
+                if ($oUser) {
+                    $aArgs['IsValid'] = true;
+                    $mResult->whereIn('adav_cards.addressbookid', function($query) use ($oUser) {
+                        $query->select('id')
+                              ->from('adav_addressbooks')
+                              ->where('principaluri', Constants::PRINCIPALS_PREFIX . $oUser->PublicId);
+                    }, 'or');
                 }
-
-                $iAddressBookId = (int) $iAddressBookId;
-                $aArgs['Storage'] = StorageType::AddressBook;
-            }
-            $sStorage = $aArgs['Storage'];
-
-            if ($sStorage === self::$sStorage || $sStorage === StorageType::All ||
-                $sStorage === StorageType::Collected || $sStorage === StorageType::AddressBook) {
+            } elseif (isset($aArgs['AddressBookId'])) {
                 $aArgs['IsValid'] = true;
-                $iUserId = isset($aArgs['UserId']) ? $aArgs['UserId'] : Api::getAuthenticatedUserId();
-
-                if (!isset($mResult)) {
-                    $mResult = Contact::query();
-                }
-
-                $bAuto = ($sStorage === StorageType::Collected);
-                if ($bAuto) {
-                    $sStorage = StorageType::Personal;
-                }
-
-                $bSuggestions = isset($aArgs['Suggestions']) ? !!$aArgs['Suggestions'] : false;
-
-                $mResult = $mResult->orWhere(function ($query) use ($iUserId, $sStorage, $bAuto, $bSuggestions, $iAddressBookId) {
-                    $query = $query->where('IdUser', $iUserId);
-
-                    if ($sStorage === StorageType::All) {
-                        $query = $query->whereIn('Storage', [StorageType::Personal, StorageType::AddressBook]);
-                    } else {
-                        $query = $query->where('Storage', $sStorage);
-                        if ($sStorage === StorageType::AddressBook && $iAddressBookId > 0) {
-                            $query = $query->where('AddressBookId', $iAddressBookId);
-                        }
-                    }
-                    // if (isset($aArgs['SortField']) && $aArgs['SortField'] === SortField::Frequency) {
-                    //     $query->whereNotNull('DateModified');
-                    // } else
-                    if (!$bSuggestions) {
-                        $query->where('Auto', $bAuto)->orWhereNull('Auto');
-                    }
-                });
+                $mResult->orWhere('adav_cards.addressbookid', (int) $aArgs['AddressBookId']);
             }
         }
     }
@@ -222,5 +213,83 @@ class Module extends \Aurora\System\Module\AbstractModule
                 $aArgs['Search']
             );
         }
+    }
+
+    /**
+     * 
+     */
+    public function populateStorage(&$aArgs) {
+    
+        if (isset($aArgs['Storage'], $aArgs['UserId'])) {
+            $aStorageParts = \explode('-', $aArgs['Storage']);
+            if (count($aStorageParts) > 1) {
+                $iAddressBookId = $aStorageParts[1];
+                if ($aStorageParts[0] === StorageType::AddressBook) {
+                    if (!is_numeric($iAddressBookId)) {
+                        return;
+                    }
+                    $aArgs['Storage'] = $aStorageParts[0];
+                    $aArgs['AddressBookId'] = $iAddressBookId;
+                }
+            } elseif (isset($aStorageParts[0])) {
+                if (isset($this->storagesMapToAddressbooks[$aStorageParts[0]])) {
+                    $addressbookUri = $this->storagesMapToAddressbooks[$aStorageParts[0]];
+                    $userPublicId = Api::getUserPublicIdById($aArgs['UserId']);
+                    if ($userPublicId) {
+                        $row = Capsule::connection()->table('adav_addressbooks')
+                            ->where('principaluri', Constants::PRINCIPALS_PREFIX . $userPublicId)
+                            ->where('uri', $addressbookUri)
+                            ->select('adav_addressbooks.id as addressbook_id')->first();
+                        if ($row) {
+                            $aArgs['AddressBookId'] = $row->addressbook_id;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * 
+     */
+    public function onAfterGetAddressBooks(&$aArgs, &$mResult) 
+    {
+        if (is_array($mResult)) {
+            foreach ($mResult as &$addressbook) {
+                $storage = array_search($addressbook['Uri'], $this->storagesMapToAddressbooks);
+                if ($storage) {
+                    $addressbook['Id'] = $storage;
+                } else {
+                    $addressbook['Id'] = StorageType::AddressBook . '-' . $addressbook['Id'];
+                }
+            }
+        }
+    }
+
+    public function onContactQueryBuilder(&$aArgs, &$query)
+    {
+        $userPublicId = Api::getUserPublicIdById($aArgs['UserId']);
+        $query->orWhere(function ($query) use ($userPublicId, $aArgs) {
+            $query->where('adav_addressbooks.principaluri', Constants::PRINCIPALS_PREFIX . $userPublicId)
+                ->where('adav_cards.id', $aArgs['UUID']);
+        });
+    }
+
+    public function onAfterCheckAccessToAddressBook(&$aArgs, &$mResult)
+    {
+        if (isset($aArgs['User'], $aArgs['AddressBookId'])) {
+            $mResult = !!Capsule::connection()->table('adav_addressbooks')
+                ->where('principaluri', Constants::PRINCIPALS_PREFIX . $aArgs['User']->PublicId)
+                ->where('id', $aArgs['AddressBookId'])
+                ->first();
+            if ($mResult) {
+                return true;
+            }
+        }
+    }
+
+    public function onAfterGetStoragesMapToAddressbooks(&$aArgs, &$mResult)
+    {
+        $mResult = array_merge($mResult, $this->storagesMapToAddressbooks);
     }
 }
