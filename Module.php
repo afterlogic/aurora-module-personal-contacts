@@ -163,7 +163,7 @@ class Module extends \Aurora\System\Module\AbstractModule
                         }
                     }
 
-                    $sTemptFile = md5($sData).'.vcf';
+                    $sTemptFile = md5($sData) . '.vcf';
                     if ($oApiFileCache && $oApiFileCache->put($oUser->UUID, $sTemptFile, $sData)) { // Temp files with access from another module should be stored in System folder
                         if (class_exists('\Aurora\Modules\Mail\Classes\Vcard')) {
                             $oVcard = \Aurora\Modules\Mail\Classes\Vcard::createInstance();
@@ -177,7 +177,7 @@ class Module extends \Aurora\System\Module\AbstractModule
                             $oMessage->addExtend('VCARD', $oVcard);
                         }
                     } else {
-                        Api::Log('Can\'t save temp file "'.$sTemptFile.'"', \Aurora\System\Enums\LogLevel::Error);
+                        Api::Log('Can\'t save temp file "' . $sTemptFile . '"', \Aurora\System\Enums\LogLevel::Error);
                     }
                 } catch(\Exception $oEx) {
                     Api::LogException($oEx);
