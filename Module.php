@@ -116,7 +116,7 @@ class Module extends \Aurora\System\Module\AbstractModule
                 $oUser = Api::getUserById($aArgs['UserId']);
                 if ($oUser) {
                     $aArgs['IsValid'] = true;
-                    $mResult->whereIn('adav_cards.addressbookid', function($query) use ($oUser) {
+                    $mResult->whereIn('adav_cards.addressbookid', function ($query) use ($oUser) {
                         $query->select('id')
                               ->from('adav_addressbooks')
                               ->where('principaluri', Constants::PRINCIPALS_PREFIX . $oUser->PublicId);
@@ -216,10 +216,11 @@ class Module extends \Aurora\System\Module\AbstractModule
     }
 
     /**
-     * 
+     *
      */
-    public function populateStorage(&$aArgs) {
-    
+    public function populateStorage(&$aArgs)
+    {
+
         if (isset($aArgs['Storage'], $aArgs['UserId'])) {
             $aStorageParts = \explode('-', $aArgs['Storage']);
             if (count($aStorageParts) > 1) {
@@ -250,9 +251,9 @@ class Module extends \Aurora\System\Module\AbstractModule
     }
 
     /**
-     * 
+     *
      */
-    public function onAfterGetAddressBooks(&$aArgs, &$mResult) 
+    public function onAfterGetAddressBooks(&$aArgs, &$mResult)
     {
         if (is_array($mResult)) {
             foreach ($mResult as &$addressbook) {
