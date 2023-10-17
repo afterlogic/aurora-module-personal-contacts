@@ -270,9 +270,13 @@ class Module extends \Aurora\System\Module\AbstractModule
     public function onContactQueryBuilder(&$aArgs, &$query)
     {
         $userPublicId = Api::getUserPublicIdById($aArgs['UserId']);
-        $query->orWhere(function ($query) use ($userPublicId, $aArgs) {
-            $query->where('adav_addressbooks.principaluri', Constants::PRINCIPALS_PREFIX . $userPublicId)
-                ->where('adav_cards.id', $aArgs['UUID']);
+        $query->orWhere(function ($q) use ($userPublicId, $aArgs) {
+            $q->where('adav_addressbooks.principaluri', Constants::PRINCIPALS_PREFIX . $userPublicId);
+            if (is_array($aArgs['UUID'])) {
+                $q->whereIn('adav_cards.id', $aArgs['UUID']);
+            } else {
+                $q->where('adav_cards.id', $aArgs['UUID']);
+            }
         });
     }
 
