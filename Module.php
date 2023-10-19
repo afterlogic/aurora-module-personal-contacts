@@ -12,7 +12,7 @@ use Afterlogic\DAV\Constants;
 use Aurora\Api;
 use Aurora\Modules\Contacts\Enums\SortField;
 use Aurora\Modules\Contacts\Enums\StorageType;
-use Aurora\Modules\Contacts\Models\Contact;
+use Aurora\Modules\Contacts\Classes\Contact;
 use Aurora\Modules\Contacts\Module as ContactsModule;
 use Illuminate\Database\Capsule\Manager as Capsule;
 
@@ -273,7 +273,9 @@ class Module extends \Aurora\System\Module\AbstractModule
         $query->orWhere(function ($q) use ($userPublicId, $aArgs) {
             $q->where('adav_addressbooks.principaluri', Constants::PRINCIPALS_PREFIX . $userPublicId);
             if (is_array($aArgs['UUID'])) {
-                $q->whereIn('adav_cards.id', $aArgs['UUID']);
+                if (count($aArgs['UUID']) > 0) {
+                    $q->whereIn('adav_cards.id', $aArgs['UUID']);
+                }
             } else {
                 $q->where('adav_cards.id', $aArgs['UUID']);
             }
