@@ -48,8 +48,10 @@ class Module extends \Aurora\System\Module\AbstractModule
         $this->subscribeEvent('Contacts::GetAddressBooks::after', array($this, 'onAfterGetAddressBooks'));
         $this->subscribeEvent('Contacts::ContactQueryBuilder', array($this, 'onContactQueryBuilder'));
         $this->subscribeEvent('Contacts::DeleteContacts::before', array($this, 'onBeforeDeleteContacts'));
-        $this->subscribeEvent('Contacts::CheckAccessToAddressBook::after', array($this, 'onAfterCheckAccessToAddressBook'));
+        $this->subscribeEvent('Contacts::CheckAccessToAddressBook::after', array($this, 'onAfterCheckAccessToAddressBook'), 90);
         $this->subscribeEvent('Contacts::GetStoragesMapToAddressbooks::after', array($this, 'onAfterGetStoragesMapToAddressbooks'));
+        $this->subscribeEvent('Contacts::GetContacts::before', array($this, 'populateStorage'));
+        $this->subscribeEvent('Contacts::PopulateStorage', array($this, 'populateStorage'));
     }
 
     /**
@@ -109,7 +111,6 @@ class Module extends \Aurora\System\Module\AbstractModule
 
     public function prepareFiltersFromStorage(&$aArgs, &$mResult)
     {
-        $this->populateStorage($aArgs);
         if (isset($aArgs['Storage'])) {
 
             if ($aArgs['Storage'] === StorageType::All) {
@@ -220,7 +221,6 @@ class Module extends \Aurora\System\Module\AbstractModule
      */
     public function populateStorage(&$aArgs)
     {
-
         if (isset($aArgs['Storage'], $aArgs['UserId'])) {
             $aStorageParts = \explode('-', $aArgs['Storage']);
             if (count($aStorageParts) > 1) {
