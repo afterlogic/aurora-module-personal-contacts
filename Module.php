@@ -112,7 +112,6 @@ class Module extends \Aurora\System\Module\AbstractModule
     public function prepareFiltersFromStorage(&$aArgs, &$mResult)
     {
         if (isset($aArgs['Storage'])) {
-
             if ($aArgs['Storage'] === StorageType::All) {
                 $oUser = Api::getUserById($aArgs['UserId']);
                 if ($oUser) {
@@ -126,6 +125,16 @@ class Module extends \Aurora\System\Module\AbstractModule
             } elseif (isset($aArgs['AddressBookId'])) {
                 $aArgs['IsValid'] = true;
                 $mResult->orWhere('adav_cards.addressbookid', (int) $aArgs['AddressBookId']);
+            }
+
+            if (isset($aArgs['Query'])) {
+                $aArgs['Query']->join('adav_addressbooks', 'adav_addressbooks.id', '=', 'adav_cards.addressbookid');
+                $aArgs['Query']->addSelect(Capsule::connection()->raw('
+                CASE
+                    WHEN ' . Capsule::connection()->getTablePrefix() . 'adav_addressbooks.uri = \'collected\' THEN true
+                    ELSE false
+                END as Auto
+                '));
             }
         }
     }
