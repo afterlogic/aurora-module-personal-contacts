@@ -40,7 +40,7 @@ class Module extends \Aurora\System\Module\AbstractModule
         $this->subscribeEvent('Contacts::GetStorages', array($this, 'onGetStorages'));
         $this->subscribeEvent('Contacts::IsDisplayedStorage::after', array($this, 'onAfterIsDisplayedStorage'));
         $this->subscribeEvent('Contacts::CreateContact::before', array($this, 'onBeforeCreateContact'));
-        $this->subscribeEvent('Contacts::PrepareFiltersFromStorage', array($this, 'prepareFiltersFromStorage'));
+        $this->subscribeEvent('Contacts::PrepareFiltersFromStorage', array($this, 'onPrepareFiltersFromStorage'));
         $this->subscribeEvent('Mail::ExtendMessageData', array($this, 'onExtendMessageData'));
         $this->subscribeEvent('Contacts::CheckAccessToObject::after', array($this, 'onAfterCheckAccessToObject'));
         $this->subscribeEvent('Contacts::GetContactSuggestions', array($this, 'onGetContactSuggestions'));
@@ -109,7 +109,7 @@ class Module extends \Aurora\System\Module\AbstractModule
         }
     }
 
-    public function prepareFiltersFromStorage(&$aArgs, &$mResult)
+    public function onPrepareFiltersFromStorage(&$aArgs, &$mResult)
     {
         if (isset($aArgs['Storage'])) {
             if ($aArgs['Storage'] === StorageType::All) {
@@ -264,15 +264,27 @@ class Module extends \Aurora\System\Module\AbstractModule
      */
     public function onAfterGetAddressBooks(&$aArgs, &$mResult)
     {
-        if (is_array($mResult)) {
-            foreach ($mResult as &$addressbook) {
-                $storage = array_search($addressbook['Uri'], $this->storagesMapToAddressbooks);
-                if ($storage) {
-                    $addressbook['Id'] = $storage;
-                } else {
-                    $addressbook['Id'] = StorageType::AddressBook . '-' . $addressbook['Id'];
-                }
-            }
+        if (!is_array($mResult)) {
+            $mResult = [];
+        }
+
+        $userPublicId = Api::getUserPublicIdById($aArgs['UserId']);
+        $aAddressBooks = Backend::Carddav()->getAddressBooksForUser(Constants::PRINCIPALS_PREFIX . $userPublicId);
+
+        foreach ($aAddressBooks as $oAddressBook) {
+            $storage = array_search($oAddressBook['uri'], $this->storagesMapToAddressbooks);
+            /**
+             * @var array $oAddressBook
+             */
+            $mResult[] = [
+                'Id' => $storage ? $storage : StorageType::AddressBook . '-' . $oAddressBook['id'],
+                'EntityId' => $oAddressBook['id'],
+                'CTag' => $oAddressBook['{http://sabredav.org/ns}sync-token'],
+                'Display' => $oAddressBook['uri'] !== Constants::ADDRESSBOOK_COLLECTED_NAME,
+                'Order' => 1,
+                'DisplayName' => $oAddressBook['{DAV:}displayname'],
+                'Uri' => $oAddressBook['uri']
+            ];
         }
     }
 
