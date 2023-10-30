@@ -269,7 +269,26 @@ class Module extends \Aurora\System\Module\AbstractModule
         }
 
         $userPublicId = Api::getUserPublicIdById($aArgs['UserId']);
-        $aAddressBooks = Backend::Carddav()->getAddressBooksForUser(Constants::PRINCIPALS_PREFIX . $userPublicId);
+        $principalUri = Constants::PRINCIPALS_PREFIX . $userPublicId;
+        $aAddressBooks = Backend::Carddav()->getAddressBooksForUser($principalUri);
+
+        if (count($aAddressBooks) === 0 && isset($principalUri)) {
+            Backend::Carddav()->createAddressBook(
+                $principalUri,
+                Constants::ADDRESSBOOK_DEFAULT_NAME,
+                [
+                    '{DAV:}displayname' => Constants::ADDRESSBOOK_DEFAULT_DISPLAY_NAME
+                ]
+            );
+            Backend::Carddav()->createAddressBook(
+                $principalUri,
+                Constants::ADDRESSBOOK_COLLECTED_NAME,
+                [
+                    '{DAV:}displayname' => Constants::ADDRESSBOOK_COLLECTED_DISPLAY_NAME
+                ]
+            );
+            $aAddressBooks = Backend::Carddav()->getAddressbooksForUser($principalUri);
+        }
 
         foreach ($aAddressBooks as $oAddressBook) {
             $storage = array_search($oAddressBook['uri'], $this->storagesMapToAddressbooks);
