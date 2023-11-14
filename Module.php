@@ -116,25 +116,26 @@ class Module extends \Aurora\System\Module\AbstractModule
                 $oUser = Api::getUserById($aArgs['UserId']);
                 if ($oUser) {
                     $aArgs['IsValid'] = true;
-                    $mResult->whereIn('adav_cards.addressbookid', function ($query) use ($oUser) {
-                        $query->select('id')
-                              ->from('adav_addressbooks')
-                              ->where('principaluri', Constants::PRINCIPALS_PREFIX . $oUser->PublicId);
-                    }, 'or');
+                    $ids = Capsule::connection()->table('adav_addressbooks')
+                        ->select('id')
+                        ->where('principaluri', Constants::PRINCIPALS_PREFIX . $oUser->PublicId)
+                        ->pluck('id')->toArray();
+                    if ($ids) {
+                        $mResult->whereIn('adav_cards.addressbookid', $ids, 'or');
+                    }
                 }
             } elseif (isset($aArgs['AddressBookId'])) {
                 $aArgs['IsValid'] = true;
                 $mResult->orWhere('adav_cards.addressbookid', (int) $aArgs['AddressBookId']);
             }
-
             if (isset($aArgs['Query'])) {
                 $aArgs['Query']->join('adav_addressbooks', 'adav_addressbooks.id', '=', 'adav_cards.addressbookid');
-                $aArgs['Query']->addSelect(Capsule::connection()->raw('
-                CASE
-                    WHEN ' . Capsule::connection()->getTablePrefix() . 'adav_addressbooks.uri = \'collected\' THEN true
+                $aArgs['Query']->addSelect(Capsule::connection()->raw(
+                'CASE
+                    WHEN ' . Capsule::connection()->getTablePrefix() . 'adav_addressbooks.uri = \'' . StorageType::Collected . '\' THEN true
                     ELSE false
-                END as Auto
-                '));
+                END as Auto'
+                ));
             }
         }
     }
