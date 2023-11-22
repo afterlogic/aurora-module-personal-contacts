@@ -131,7 +131,7 @@ class Module extends \Aurora\System\Module\AbstractModule
             if (isset($aArgs['Query'])) {
                 $aArgs['Query']->join('adav_addressbooks', 'adav_addressbooks.id', '=', 'adav_cards.addressbookid');
                 $aArgs['Query']->addSelect(Capsule::connection()->raw(
-                'CASE
+                    'CASE
                     WHEN ' . Capsule::connection()->getTablePrefix() . 'adav_addressbooks.uri = \'' . StorageType::Collected . '\' THEN true
                     ELSE false
                 END as Auto'
@@ -301,6 +301,7 @@ class Module extends \Aurora\System\Module\AbstractModule
                 'EntityId' => $oAddressBook['id'],
                 'CTag' => $oAddressBook['{http://sabredav.org/ns}sync-token'],
                 'Display' => $oAddressBook['uri'] !== Constants::ADDRESSBOOK_COLLECTED_NAME,
+                'Owner' => basename($oAddressBook['principaluri']),
                 'Order' => 1,
                 'DisplayName' => $oAddressBook['{DAV:}displayname'],
                 'Uri' => $oAddressBook['uri']
