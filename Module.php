@@ -298,8 +298,8 @@ class Module extends \Aurora\System\Module\AbstractModule
              */
             $mResult[] = [
                 'Id' => $storage ? $storage : StorageType::AddressBook . '-' . $oAddressBook['id'],
-                'EntityId' => $oAddressBook['id'],
-                'CTag' => $oAddressBook['{http://sabredav.org/ns}sync-token'],
+                'EntityId' => (int) $oAddressBook['id'],
+                'CTag' => (int) $oAddressBook['{http://sabredav.org/ns}sync-token'],
                 'Display' => $oAddressBook['uri'] !== Constants::ADDRESSBOOK_COLLECTED_NAME,
                 'Owner' => basename($oAddressBook['principaluri']),
                 'Order' => 1,
