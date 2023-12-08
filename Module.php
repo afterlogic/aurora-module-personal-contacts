@@ -273,22 +273,46 @@ class Module extends \Aurora\System\Module\AbstractModule
         $principalUri = Constants::PRINCIPALS_PREFIX . $userPublicId;
         $aAddressBooks = Backend::Carddav()->getAddressBooksForUser($principalUri);
 
-        if (count($aAddressBooks) === 0 && isset($principalUri)) {
-            Backend::Carddav()->createAddressBook(
+        $bookUris = array_map(function ($book) {
+            return $book['uri'];
+        }, $aAddressBooks);
+
+        if (!in_array(Constants::ADDRESSBOOK_DEFAULT_NAME, $bookUris)) {
+            $aBookId = Backend::Carddav()->createAddressBook(
                 $principalUri,
                 Constants::ADDRESSBOOK_DEFAULT_NAME,
                 [
                     '{DAV:}displayname' => Constants::ADDRESSBOOK_DEFAULT_DISPLAY_NAME
                 ]
             );
-            Backend::Carddav()->createAddressBook(
+            $aAddressBooks[] = [
+                'id' => $aBookId,
+                'uri' => Constants::ADDRESSBOOK_DEFAULT_NAME,
+                'principaluri' => $principalUri,
+                '{DAV:}displayname' => Constants::ADDRESSBOOK_DEFAULT_DISPLAY_NAME,
+                '{urn:ietf:params:xml:ns:carddav}addressbook-description' => null,
+                '{http://calendarserver.org/ns/}getctag' => 0,
+                '{http://sabredav.org/ns}sync-token' => 0
+            ];
+        }
+
+        if (!in_array(Constants::ADDRESSBOOK_COLLECTED_NAME, $bookUris)) {
+            $aBookId = Backend::Carddav()->createAddressBook(
                 $principalUri,
                 Constants::ADDRESSBOOK_COLLECTED_NAME,
                 [
                     '{DAV:}displayname' => Constants::ADDRESSBOOK_COLLECTED_DISPLAY_NAME
                 ]
             );
-            $aAddressBooks = Backend::Carddav()->getAddressbooksForUser($principalUri);
+            $aAddressBooks[] = [
+                'id' => $aBookId,
+                'uri' => Constants::ADDRESSBOOK_COLLECTED_NAME,
+                'principaluri' => $principalUri,
+                '{DAV:}displayname' => Constants::ADDRESSBOOK_COLLECTED_DISPLAY_NAME,
+                '{urn:ietf:params:xml:ns:carddav}addressbook-description' => null,
+                '{http://calendarserver.org/ns/}getctag' => 0,
+                '{http://sabredav.org/ns}sync-token' => 0
+            ];
         }
 
         foreach ($aAddressBooks as $oAddressBook) {
