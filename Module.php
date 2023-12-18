@@ -10,7 +10,6 @@ namespace Aurora\Modules\PersonalContacts;
 use Afterlogic\DAV\Backend;
 use Afterlogic\DAV\Constants;
 use Aurora\Api;
-use Aurora\Modules\Contacts\Enums\SortField;
 use Aurora\Modules\Contacts\Enums\StorageType;
 use Aurora\Modules\Contacts\Classes\Contact;
 use Aurora\Modules\Contacts\Module as ContactsModule;
