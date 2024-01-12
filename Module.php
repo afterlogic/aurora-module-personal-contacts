@@ -96,7 +96,7 @@ class Module extends \Aurora\System\Module\AbstractModule
             if (isset($aArgs['UserId'])) {
                 $aArgs['Contact']['UserId'] = $aArgs['UserId'];
             }
-            $this->populateStorage($aArgs['Contact'], $mResult);
+            $this->populateStorage($aArgs['Contact']);
         }
     }
 
