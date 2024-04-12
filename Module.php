@@ -173,7 +173,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 		}
 	}
 
-	 public function prepareFiltersFromStorage(&$aArgs, &$mResult)
+	public function prepareFiltersFromStorage(&$aArgs, &$mResult)
 	{
 		if (isset($aArgs['Storage']))
 		{
@@ -221,6 +221,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 					}
 				}
 
+				//outdated case that was used to get contacts suggestion including collected contacts
 				if (isset($aArgs['SortField']) && $aArgs['SortField'] === \Aurora\Modules\Contacts\Enums\SortField::Frequency)
 				{
 					$aFilter['Frequency'] = [-1, '!='];
@@ -238,7 +239,6 @@ class Module extends \Aurora\System\Module\AbstractModule
 					else
 					{
 						$aFilter['Auto'] = [true, '='];
-
 					}
 				}
 				$mResult[]['$AND'] = $aFilter;
@@ -327,7 +327,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 	{
 		if ($aArgs['Storage'] === 'all' || $aArgs['Storage'] === self::$sStorage)
 		{
-			$aContacts  = \Aurora\Modules\Contacts\Module::Decorator()->GetContacts(
+			$aContacts = \Aurora\Modules\Contacts\Module::Decorator()->GetContacts(
 				$aArgs['UserId'], 
 				self::$sStorage, 
 				0, 
@@ -336,8 +336,21 @@ class Module extends \Aurora\System\Module\AbstractModule
 				$aArgs['SortOrder'], 
 				$aArgs['Search']
 			);
+			// searching for collected contacts is required in case sort field is not frequency
+			$aCollectedContacts = ['ContactCount' => 0, 'List' => []];
+			if ($aArgs['SortField'] !== \Aurora\Modules\Contacts\Enums\SortField::Frequency) {
+				$aCollectedContacts = \Aurora\Modules\Contacts\Module::Decorator()->GetContacts(
+					$aArgs['UserId'], 
+					StorageType::Collected,
+					0, 
+					$aArgs['Limit'], 
+					$aArgs['SortField'], 
+					$aArgs['SortOrder'], 
+					$aArgs['Search']
+				);
+			}
 
-			$aAbContacts  = \Aurora\Modules\Contacts\Module::Decorator()->GetContacts(
+			$aAbContacts = \Aurora\Modules\Contacts\Module::Decorator()->GetContacts(
 				$aArgs['UserId'], 
 				'addressbook', 
 				0, 
@@ -347,9 +360,10 @@ class Module extends \Aurora\System\Module\AbstractModule
 				$aArgs['Search']
 			);
 
-			$aContacts['ContactCount'] = $aContacts['ContactCount'] + $aAbContacts['ContactCount']; 
+			$aContacts['ContactCount'] = $aContacts['ContactCount'] + $aCollectedContacts['ContactCount'] + $aAbContacts['ContactCount']; 
 			$aContacts['List'] = array_merge(
 				$aContacts['List'],
+				$aCollectedContacts['List'],
 				$aAbContacts['List']
 			);
 
