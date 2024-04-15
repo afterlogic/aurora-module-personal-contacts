@@ -327,7 +327,8 @@ class Module extends \Aurora\System\Module\AbstractModule
                 'Owner' => basename($oAddressBook['principaluri']),
                 'Order' => 1,
                 'DisplayName' => $oAddressBook['{DAV:}displayname'],
-                'Uri' => $oAddressBook['uri']
+                'Uri' => $oAddressBook['uri'],
+                'Url' => 'contacts/' . $oAddressBook['uri'],
             ];
         }
     }
