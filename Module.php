@@ -36,8 +36,6 @@ class Module extends \Aurora\System\Module\AbstractModule
 
     public function init()
     {
-        $this->subscribeEvent('Contacts::GetStorages', array($this, 'onGetStorages'));
-        $this->subscribeEvent('Contacts::IsDisplayedStorage::after', array($this, 'onAfterIsDisplayedStorage'));
         $this->subscribeEvent('Contacts::CreateContact::before', array($this, 'onBeforeCreateContact'));
         $this->subscribeEvent('Contacts::PrepareFiltersFromStorage', array($this, 'onPrepareFiltersFromStorage'));
         $this->subscribeEvent('Mail::ExtendMessageData', array($this, 'onExtendMessageData'));
@@ -75,19 +73,6 @@ class Module extends \Aurora\System\Module\AbstractModule
     public function getModuleSettings()
     {
         return $this->oModuleSettings;
-    }
-
-    public function onGetStorages(&$aStorages)
-    {
-        // $aStorages[self::$iStorageOrder] = self::$sStorage;
-        // $aStorages[self::$iStorageOrder + 1] = StorageType::Collected;
-    }
-
-    public function onAfterIsDisplayedStorage($aArgs, &$mResult)
-    {
-        // if ($aArgs['Storage'] === StorageType::Collected) {
-        //     $mResult = false;
-        // }
     }
 
     public function onBeforeCreateContact(&$aArgs, &$mResult)
