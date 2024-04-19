@@ -36,6 +36,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 
     public function init()
     {
+        $this->subscribeEvent('Core::CreateUser::after', array($this, 'onAfterCreateUser'));
         $this->subscribeEvent('Contacts::CreateContact::before', array($this, 'onBeforeCreateContact'));
         $this->subscribeEvent('Contacts::PrepareFiltersFromStorage', array($this, 'onPrepareFiltersFromStorage'));
         $this->subscribeEvent('Mail::ExtendMessageData', array($this, 'onExtendMessageData'));
@@ -73,6 +74,29 @@ class Module extends \Aurora\System\Module\AbstractModule
     public function getModuleSettings()
     {
         return $this->oModuleSettings;
+    }
+
+    public function onAfterCreateUser($aArgs, &$mResult)
+    {
+        if ($mResult) {
+            $principalUri = Constants::PRINCIPALS_PREFIX . $aArgs['PublicId'];
+
+            Backend::Carddav()->createAddressBook(
+                $principalUri,
+                Constants::ADDRESSBOOK_DEFAULT_NAME,
+                [
+                    '{DAV:}displayname' => Constants::ADDRESSBOOK_DEFAULT_DISPLAY_NAME
+                ]
+            );
+
+            Backend::Carddav()->createAddressBook(
+                $principalUri,
+                Constants::ADDRESSBOOK_COLLECTED_NAME,
+                [
+                    '{DAV:}displayname' => Constants::ADDRESSBOOK_COLLECTED_DISPLAY_NAME
+                ]
+            );
+        }
     }
 
     public function onBeforeCreateContact(&$aArgs, &$mResult)
@@ -256,48 +280,6 @@ class Module extends \Aurora\System\Module\AbstractModule
         $userPublicId = Api::getUserPublicIdById($aArgs['UserId']);
         $principalUri = Constants::PRINCIPALS_PREFIX . $userPublicId;
         $aAddressBooks = Backend::Carddav()->getAddressBooksForUser($principalUri);
-
-        $bookUris = array_map(function ($book) {
-            return $book['uri'];
-        }, $aAddressBooks);
-
-        if (!in_array(Constants::ADDRESSBOOK_DEFAULT_NAME, $bookUris)) {
-            $aBookId = Backend::Carddav()->createAddressBook(
-                $principalUri,
-                Constants::ADDRESSBOOK_DEFAULT_NAME,
-                [
-                    '{DAV:}displayname' => Constants::ADDRESSBOOK_DEFAULT_DISPLAY_NAME
-                ]
-            );
-            $aAddressBooks[] = [
-                'id' => $aBookId,
-                'uri' => Constants::ADDRESSBOOK_DEFAULT_NAME,
-                'principaluri' => $principalUri,
-                '{DAV:}displayname' => Constants::ADDRESSBOOK_DEFAULT_DISPLAY_NAME,
-                '{urn:ietf:params:xml:ns:carddav}addressbook-description' => null,
-                '{http://calendarserver.org/ns/}getctag' => 0,
-                '{http://sabredav.org/ns}sync-token' => 0
-            ];
-        }
-
-        if (!in_array(Constants::ADDRESSBOOK_COLLECTED_NAME, $bookUris)) {
-            $aBookId = Backend::Carddav()->createAddressBook(
-                $principalUri,
-                Constants::ADDRESSBOOK_COLLECTED_NAME,
-                [
-                    '{DAV:}displayname' => Constants::ADDRESSBOOK_COLLECTED_DISPLAY_NAME
-                ]
-            );
-            $aAddressBooks[] = [
-                'id' => $aBookId,
-                'uri' => Constants::ADDRESSBOOK_COLLECTED_NAME,
-                'principaluri' => $principalUri,
-                '{DAV:}displayname' => Constants::ADDRESSBOOK_COLLECTED_DISPLAY_NAME,
-                '{urn:ietf:params:xml:ns:carddav}addressbook-description' => null,
-                '{http://calendarserver.org/ns/}getctag' => 0,
-                '{http://sabredav.org/ns}sync-token' => 0
-            ];
-        }
 
         foreach ($aAddressBooks as $oAddressBook) {
             $storage = array_search($oAddressBook['uri'], $this->storagesMapToAddressbooks);
