@@ -48,8 +48,8 @@ class Module extends \Aurora\System\Module\AbstractModule
         $this->subscribeEvent('Contacts::DeleteContacts::before', array($this, 'onBeforeDeleteContacts'));
         $this->subscribeEvent('Contacts::CheckAccessToAddressBook::after', array($this, 'onAfterCheckAccessToAddressBook'), 90);
         $this->subscribeEvent('Contacts::GetStoragesMapToAddressbooks::after', array($this, 'onAfterGetStoragesMapToAddressbooks'));
-        $this->subscribeEvent('Contacts::GetContacts::before', array($this, 'populateStorage'));
-        $this->subscribeEvent('Contacts::PopulateStorage', array($this, 'populateStorage'));
+        $this->subscribeEvent('Contacts::GetContacts::before', array($this, 'populateContactArguments'));
+        $this->subscribeEvent('Contacts::PopulateContactArguments', array($this, 'populateContactArguments'));
     }
 
     /**
@@ -105,13 +105,13 @@ class Module extends \Aurora\System\Module\AbstractModule
             if (isset($aArgs['UserId'])) {
                 $aArgs['Contact']['UserId'] = $aArgs['UserId'];
             }
-            $this->populateStorage($aArgs['Contact']);
+            $this->populateContactArguments($aArgs['Contact'], $mResult);
         }
     }
 
     public function onBeforeDeleteContacts(&$aArgs, &$mResult)
     {
-        $this->populateStorage($aArgs);
+        $this->populateContactArguments($aArgs, $mResult);
         if (isset($aArgs['AddressBookId'])) {
             $aArgs['Storage'] = $aArgs['AddressBookId'];
         }
@@ -144,6 +144,9 @@ class Module extends \Aurora\System\Module\AbstractModule
                     ELSE false
                 END as Auto'
                 ));
+            }
+            if ((isset($aArgs['Suggestions']) && !$aArgs['Suggestions']) || !isset($aArgs['Suggestions'])) {
+                $mResult->where('adav_addressbooks.uri', '!=', Constants::ADDRESSBOOK_COLLECTED_NAME);
             }
         }
     }
@@ -237,7 +240,7 @@ class Module extends \Aurora\System\Module\AbstractModule
     /**
      *
      */
-    public function populateStorage(&$aArgs)
+    public function populateContactArguments(&$aArgs, &$mResult)
     {
         if (isset($aArgs['Storage'], $aArgs['UserId'])) {
             $aStorageParts = \explode('-', $aArgs['Storage']);
@@ -249,6 +252,8 @@ class Module extends \Aurora\System\Module\AbstractModule
                     }
                     $aArgs['Storage'] = $aStorageParts[0];
                     $aArgs['AddressBookId'] = $iAddressBookId;
+
+                    $mResult = true;
                 }
             } elseif (isset($aStorageParts[0])) {
                 if (isset($this->storagesMapToAddressbooks[$aStorageParts[0]])) {
@@ -261,6 +266,8 @@ class Module extends \Aurora\System\Module\AbstractModule
                             ->select('adav_addressbooks.id as addressbook_id')->first();
                         if ($row) {
                             $aArgs['AddressBookId'] = $row->addressbook_id;
+
+                            $mResult = true;
                         }
                     }
                 }
