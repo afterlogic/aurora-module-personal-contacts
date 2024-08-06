@@ -288,7 +288,15 @@ class Module extends \Aurora\System\Module\AbstractModule
         $principalUri = Constants::PRINCIPALS_PREFIX . $userPublicId;
         $aAddressBooks = Backend::Carddav()->getAddressBooksForUser($principalUri);
 
+        $isPersonalABookExists = false;
+        $isCollectedABookExists = false;
         foreach ($aAddressBooks as $oAddressBook) {
+            if ($oAddressBook['uri'] === Constants::ADDRESSBOOK_DEFAULT_NAME) {
+                $isPersonalABookExists = true;
+            }
+            if ($oAddressBook['uri'] === Constants::ADDRESSBOOK_COLLECTED_NAME) {
+                $isCollectedABookExists = true;
+            }
             $storage = array_search($oAddressBook['uri'], $this->storagesMapToAddressbooks);
             /**
              * @var array $oAddressBook
@@ -304,6 +312,54 @@ class Module extends \Aurora\System\Module\AbstractModule
                 'Uri' => $oAddressBook['uri'],
                 'Url' => 'addressbooks/' . $oAddressBook['uri'],
             ];
+        }
+
+        if (!$isPersonalABookExists) {
+            $abookId = Backend::Carddav()->createAddressBook(
+                $principalUri,
+                Constants::ADDRESSBOOK_DEFAULT_NAME,
+                [
+                    '{DAV:}displayname' => Constants::ADDRESSBOOK_DEFAULT_DISPLAY_NAME
+                ]
+            );
+
+            if ($abookId) {
+                $mResult[] = [
+                    'Id' => StorageType::Personal,
+                    'EntityId' => (int) $abookId,
+                    'CTag' => 1,
+                    'Display' => true,
+                    'Owner' => basename($principalUri),
+                    'Order' => 1,
+                    'DisplayName' => Constants::ADDRESSBOOK_DEFAULT_DISPLAY_NAME,
+                    'Uri' => Constants::ADDRESSBOOK_DEFAULT_NAME,
+                    'Url' => 'addressbooks/' . Constants::ADDRESSBOOK_DEFAULT_NAME,
+                ];
+            }
+        }
+
+        if (!$isCollectedABookExists) {
+            $abookId = Backend::Carddav()->createAddressBook(
+                $principalUri,
+                Constants::ADDRESSBOOK_COLLECTED_NAME,
+                [
+                    '{DAV:}displayname' => Constants::ADDRESSBOOK_COLLECTED_DISPLAY_NAME
+                ]
+            );
+
+            if ($abookId) {
+                $mResult[] = [
+                    'Id' => StorageType::Collected,
+                    'EntityId' => (int) $abookId,
+                    'CTag' => 1,
+                    'Display' => false,
+                    'Owner' => basename($principalUri),
+                    'Order' => 1,
+                    'DisplayName' => Constants::ADDRESSBOOK_COLLECTED_DISPLAY_NAME,
+                    'Uri' => Constants::ADDRESSBOOK_COLLECTED_NAME,
+                    'Url' => 'addressbooks/' . Constants::ADDRESSBOOK_COLLECTED_NAME,
+                ];
+            }
         }
     }
 
