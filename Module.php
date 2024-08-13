@@ -276,6 +276,42 @@ class Module extends \Aurora\System\Module\AbstractModule
     }
 
     /**
+     * @param array $addressBooks
+     * @param string $principalUri
+     * @return void
+     */
+    protected function createMissingAddressBooks(&$addressBooks, $principalUri)
+    {
+        $result = false;
+        if (!collect($addressBooks)->where('uri', Constants::ADDRESSBOOK_DEFAULT_NAME)->first()) {
+            $result = !!Backend::Carddav()->createAddressBook(
+                $principalUri,
+                Constants::ADDRESSBOOK_DEFAULT_NAME,
+                [
+                    '{DAV:}displayname' => Constants::ADDRESSBOOK_DEFAULT_DISPLAY_NAME
+                ]
+            );
+        }
+
+        if (!collect($addressBooks)->where('uri', Constants::ADDRESSBOOK_COLLECTED_NAME)->first()) {
+            $cardId = Backend::Carddav()->createAddressBook(
+                $principalUri,
+                Constants::ADDRESSBOOK_COLLECTED_NAME,
+                [
+                    '{DAV:}displayname' => Constants::ADDRESSBOOK_COLLECTED_DISPLAY_NAME
+                ]
+            );
+            if (!$result) {
+                $result = !!$cardId;
+            }
+        }
+
+        if ($result) {
+            $addressBooks = Backend::Carddav()->getAddressBooksForUser($principalUri);
+        }
+    }
+
+    /**
      *
      */
     public function onAfterGetAddressBooks(&$aArgs, &$mResult)
@@ -287,6 +323,8 @@ class Module extends \Aurora\System\Module\AbstractModule
         $userPublicId = Api::getUserPublicIdById($aArgs['UserId']);
         $principalUri = Constants::PRINCIPALS_PREFIX . $userPublicId;
         $aAddressBooks = Backend::Carddav()->getAddressBooksForUser($principalUri);
+
+        $this->createMissingAddressBooks($aAddressBooks, $principalUri);
 
         foreach ($aAddressBooks as $oAddressBook) {
             $storage = array_search($oAddressBook['uri'], $this->storagesMapToAddressbooks);
