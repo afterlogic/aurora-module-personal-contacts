@@ -50,6 +50,7 @@ class Module extends \Aurora\System\Module\AbstractModule
         $this->subscribeEvent('Contacts::GetStoragesMapToAddressbooks::after', array($this, 'onAfterGetStoragesMapToAddressbooks'));
         $this->subscribeEvent('Contacts::GetContacts::before', array($this, 'populateContactArguments'));
         $this->subscribeEvent('Contacts::PopulateContactArguments', array($this, 'populateContactArguments'));
+        $this->subscribeEvent('Contacts::Export::before', array($this, 'populateContactArguments'));
     }
 
     /**
