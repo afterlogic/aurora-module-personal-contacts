@@ -130,7 +130,12 @@ class Module extends \Aurora\System\Module\AbstractModule
                         ->where('principaluri', Constants::PRINCIPALS_PREFIX . $oUser->PublicId)
                         ->pluck('id')->toArray();
                     if ($ids) {
-                        $mResult->whereIn('adav_cards.addressbookid', $ids, 'or');
+                        $mResult->orWhere(function ($q) use ($ids, $aArgs) {
+                            $q->whereIn('adav_cards.addressbookid', $ids);
+                            if ((isset($aArgs['Suggestions']) && !$aArgs['Suggestions']) || !isset($aArgs['Suggestions'])) {
+                                $q->where('adav_addressbooks.uri', '!=', Constants::ADDRESSBOOK_COLLECTED_NAME);
+                            }
+                        });
                     }
                 }
             } elseif (isset($aArgs['AddressBookId'])) {
@@ -145,9 +150,6 @@ class Module extends \Aurora\System\Module\AbstractModule
                     ELSE false
                 END as Auto'
                 ));
-            }
-            if ((isset($aArgs['Suggestions']) && !$aArgs['Suggestions']) || !isset($aArgs['Suggestions'])) {
-                $mResult->where('adav_addressbooks.uri', '!=', Constants::ADDRESSBOOK_COLLECTED_NAME);
             }
         }
     }
