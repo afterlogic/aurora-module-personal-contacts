@@ -49,6 +49,7 @@ class Module extends \Aurora\System\Module\AbstractModule
         $this->subscribeEvent('Contacts::CheckAccessToAddressBook::after', array($this, 'onAfterCheckAccessToAddressBook'), 90);
         $this->subscribeEvent('Contacts::GetStoragesMapToAddressbooks::after', array($this, 'onAfterGetStoragesMapToAddressbooks'));
         $this->subscribeEvent('Contacts::GetContacts::before', array($this, 'populateContactArguments'));
+        $this->subscribeEvent('Contacts::GetContactsByEmails::before', array($this, 'populateContactArguments'));
         $this->subscribeEvent('Contacts::PopulateContactArguments', array($this, 'populateContactArguments'));
         $this->subscribeEvent('Contacts::Export::before', array($this, 'populateContactArguments'));
     }
@@ -177,9 +178,7 @@ class Module extends \Aurora\System\Module\AbstractModule
                         $aLocalContacts = ContactsModule::Decorator()->GetContactsByEmails(
                             $oUser->Id,
                             self::$sStorage,
-                            [$oContact->ViewEmail],
-                            null,
-                            false
+                            [$oContact->ViewEmail]
                         );
                         $oLocalContact = count($aLocalContacts) > 0 ? $aLocalContacts[0] : null;
                         if ($oLocalContact) {
