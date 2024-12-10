@@ -146,7 +146,8 @@ class Module extends \Aurora\System\Module\AbstractModule
             if (isset($aArgs['Query'])) {
                 $aArgs['Query']->join('adav_addressbooks', 'adav_addressbooks.id', '=', 'adav_cards.addressbookid');
                 $aArgs['Query']->addSelect(Capsule::connection()->raw(
-                    'CASE
+                    '
+                CASE
                     WHEN ' . Capsule::connection()->getTablePrefix() . 'adav_addressbooks.uri = \'' . Constants::ADDRESSBOOK_COLLECTED_NAME . '\' THEN true
                     ELSE false
                 END as Auto'
