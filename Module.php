@@ -126,17 +126,19 @@ class Module extends \Aurora\System\Module\AbstractModule
                 $oUser = Api::getUserById($aArgs['UserId']);
                 if ($oUser) {
                     $aArgs['IsValid'] = true;
-                    $ids = Capsule::connection()->table('adav_addressbooks')
-                        ->select('id')
-                        ->where('principaluri', Constants::PRINCIPALS_PREFIX . $oUser->PublicId)
-                        ->pluck('id')->toArray();
-                    if ($ids) {
-                        $mResult->orWhere(function ($q) use ($ids, $aArgs) {
-                            $q->whereIn('adav_cards.addressbookid', $ids);
-                            if ((isset($aArgs['Suggestions']) && !$aArgs['Suggestions']) || !isset($aArgs['Suggestions'])) {
-                                $q->where('adav_addressbooks.uri', '!=', Constants::ADDRESSBOOK_COLLECTED_NAME);
-                            }
+                    $mResult->orWhere(function ($q) use ($oUser) {
+                        $q->whereIn('adav_cards.addressbookid', function ($sub) use ($oUser) {
+                            $sub->select('id')
+                                ->from('adav_addressbooks')
+                                ->where('principaluri', Constants::PRINCIPALS_PREFIX . $oUser->PublicId);
                         });
+                    });
+                    if ((isset($aArgs['Suggestions']) && !$aArgs['Suggestions']) || !isset($aArgs['Suggestions'])) {
+                        if (isset($aArgs['Query'])) {
+                            $aArgs['Query']->where('adav_addressbooks.uri', '!=', Constants::ADDRESSBOOK_COLLECTED_NAME);
+                        } else {
+                            $mResult->where('adav_addressbooks.uri', '!=', Constants::ADDRESSBOOK_COLLECTED_NAME);
+                        }
                     }
                 }
             } elseif (isset($aArgs['AddressBookId'])) {
@@ -144,8 +146,21 @@ class Module extends \Aurora\System\Module\AbstractModule
                 $mResult->orWhere('adav_cards.addressbookid', (int) $aArgs['AddressBookId']);
             }
             if (isset($aArgs['Query'])) {
-                $aArgs['Query']->join('adav_addressbooks', 'adav_addressbooks.id', '=', 'adav_cards.addressbookid');
-                $aArgs['Query']->addSelect(Capsule::connection()->raw(
+                $query = $aArgs['Query'];
+                $baseQuery = method_exists($query, 'getQuery') ? $query->getQuery() : $query;
+                $joinExists = false;
+                if ($baseQuery->joins) {
+                    foreach ($baseQuery->joins as $join) {
+                        if (stripos($join->table, 'adav_addressbooks') !== false) {
+                            $joinExists = true;
+                            break;
+                        }
+                    }
+                }
+                if (!$joinExists) {
+                    $query->join('adav_addressbooks', 'adav_addressbooks.id', '=', 'adav_cards.addressbookid');
+                }
+                $query->addSelect(Capsule::connection()->raw(
                     '
                 CASE
                     WHEN ' . Capsule::connection()->getTablePrefix() . 'adav_addressbooks.uri = \'' . Constants::ADDRESSBOOK_COLLECTED_NAME . '\' THEN true
