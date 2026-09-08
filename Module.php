@@ -41,7 +41,6 @@ class Module extends \Aurora\System\Module\AbstractModule
         $this->subscribeEvent('Contacts::PrepareFiltersFromStorage', array($this, 'onPrepareFiltersFromStorage'));
         $this->subscribeEvent('Mail::ExtendMessageData', array($this, 'onExtendMessageData'));
         $this->subscribeEvent('Contacts::CheckAccessToObject::after', array($this, 'onAfterCheckAccessToObject'));
-        $this->subscribeEvent('Contacts::GetContactSuggestions', array($this, 'onGetContactSuggestions'));
 
         $this->subscribeEvent('Contacts::GetAddressBooks::after', array($this, 'onAfterGetAddressBooks'));
         $this->subscribeEvent('Contacts::ContactQueryBuilder', array($this, 'onContactQueryBuilder'));
@@ -232,20 +231,6 @@ class Module extends \Aurora\System\Module\AbstractModule
         }
     }
 
-    public function onGetContactSuggestions(&$aArgs, &$mResult)
-    {
-        if ($aArgs['Storage'] === 'all' || $aArgs['Storage'] === self::$sStorage) {
-            $mResult['personal'] = ContactsModule::Decorator()->GetContacts(
-                $aArgs['UserId'],
-                self::$sStorage,
-                0,
-                $aArgs['Limit'],
-                $aArgs['SortField'],
-                $aArgs['SortOrder'],
-                $aArgs['Search']
-            );
-        }
-    }
 
     /**
      *
