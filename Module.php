@@ -117,13 +117,12 @@ class Module extends \Aurora\System\Module\AbstractModule
                 $oUser = Api::getUserById($aArgs['UserId']);
                 if ($oUser) {
                     $aArgs['IsValid'] = true;
-                    $mResult->orWhere(function ($q) use ($oUser) {
-                        $q->whereIn('adav_cards.addressbookid', function ($sub) use ($oUser) {
-                            $sub->select('id')
-                                ->from('adav_addressbooks')
-                                ->where('principaluri', Constants::PRINCIPALS_PREFIX . $oUser->PublicId);
-                        });
-                    });
+                    // The ids have to be literal: with a subquery inside the OR the optimizer can't use
+                    // the addressbookid index and scans all contacts of all users
+                    $ids = Capsule::connection()->table('adav_addressbooks')
+                        ->where('principaluri', Constants::PRINCIPALS_PREFIX . $oUser->PublicId)
+                        ->pluck('id')->all();
+                    $mResult->orWhereIn('adav_cards.addressbookid', $ids);
                     if ((isset($aArgs['Suggestions']) && !$aArgs['Suggestions']) || !isset($aArgs['Suggestions'])) {
                         if (isset($aArgs['Query'])) {
                             $aArgs['Query']->where('adav_addressbooks.uri', '!=', Constants::ADDRESSBOOK_COLLECTED_NAME);
